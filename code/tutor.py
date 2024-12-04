@@ -3,6 +3,8 @@ from datetime import datetime
 from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp
 import pdb
 
+verbose_output = True
+
 student_name = input('Input the name of the student.\n')
 student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_').lower()
 
@@ -105,7 +107,7 @@ Let's get started! Please give the student their first problem. Remember, only t
 
 # Initialize conversation
 messages = [{"role": "user", "content": first_prompt}]
-text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools)
+text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
 print("\nTutor:", text_to_student)
 
 # Main chat loop
@@ -121,7 +123,7 @@ while True:
 
         wrapped_input = f"Timestamp: {get_timestamp()}\n<from_student>{user_input}</from_student>"
         messages.append({"role": "user", "content": wrapped_input})
-        text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools)
+        text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
         print("\nTutor:", text_to_student)
         
     except KeyboardInterrupt:
@@ -130,5 +132,10 @@ while True:
     except Exception as e:
         print(f"\nAn error occurred: {str(e)}")
         print("Please try again.")
+
+messages.append({"role": "user", "content": 'The student has ended the tutoring session. Please make any last updates to your notes. This would be a good time to update the lesson plan so you are ready for the next session.'})
+text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
+if verbose_output:
+    print("\nTutor:", text_to_student)
 
 print("\nThanks for the session! Goodbye!")

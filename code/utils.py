@@ -31,7 +31,7 @@ def edit_notes(student_name_safe, note_topic, old_excerpt, new_excerpt):
     except Exception as e:
         return f"Error: {str(e)}"
 
-def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10):
+def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, verbose_output=False):
     MODEL_NAME = 'claude-3-5-sonnet-latest'
     turn_i = 0
     first_turn = True
@@ -47,7 +47,8 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10):
         )
 
         if turn_i >= max_turns:
-            print(colored(f'Max turns reached ({max_turns})', 'red'))
+            if verbose_output:
+                print(colored(f'Max turns reached ({max_turns})', 'red'))
             return text_to_student, messages
             #raise ValueError(f'Max turns reached ({max_turns})')
 
@@ -57,21 +58,25 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10):
             tool_name = tool_use.name
             tool_input = tool_use.input
 
-            print(f"\n{colored(f'Tool Used: {tool_name}', 'green')}")
-            print(f"  {colored('Tool Input:', 'yellow')}")
-            print(colored(json.dumps(tool_input, indent=2), 'yellow'))
+            if verbose_output:
+                print(f"\n{colored(f'Tool Used: {tool_name}', 'green')}")
+                print(f"  {colored('Tool Input:', 'yellow')}")
+                print(colored(json.dumps(tool_input, indent=2), 'yellow'))
             
             try:
-                if tool_name == 'get_notes':
-                    tool_result = get_notes(student_name_safe, tool_input['note_topic'])
-                elif tool_name == 'edit_notes':
-                    tool_result = edit_notes(student_name_safe, tool_input['note_topic'], 
-                                          tool_input.get('old_excerpt', ''), tool_input['new_excerpt'])
+                if tool_name in globals() and tools and any(tool['name'] == tool_name for tool in tools):
+                    tool_function = globals()[tool_name]
+                    tool_result = tool_function(
+                        student_name_safe,  # Always pass student_name_safe as first arg
+                        **tool_input  # Unpack remaining parameters from tool input
+                    )
                 else:
-                    tool_result = f'Error: Unknown tool {tool_name}'
-                print(f'  {colored(f"Tool Result: {tool_result}", "blue")}')
+                    tool_result = f'Error: Tool {tool_name} not found'
+                if verbose_output:
+                    print(f'  {colored(f"Tool Result: {tool_result}", "blue")}')
             except Exception as e:
-                print(f'  {colored(f"Error: {e}", "red")}')
+                if verbose_output:
+                    print(f'  {colored(f"Error: {e}", "red")}')
                 tool_result = f'Error: {e}'
 
             user_content_list.append({
