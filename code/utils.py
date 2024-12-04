@@ -1,25 +1,38 @@
 import anthropic
 import json
 from bs4 import BeautifulSoup
-
+from termcolor import colored
+from datetime import datetime
 anthropic_client = anthropic.Anthropic()
 
+def get_timestamp():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 def get_notes(student_name_safe, note_topic):
-    with open(f'data/{student_name_safe}_{note_topic}.txt', 'r') as f:
-        return f.read()
+    try:
+        with open(f'data/{student_name_safe}_{note_topic}.txt', 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return f"Error: No notes found for {note_topic}"
 
+def edit_notes(student_name_safe, note_topic, old_excerpt, new_excerpt):
+    try:
+        current_notes = get_notes(student_name_safe, note_topic)
+        if not old_excerpt:  # If no old_excerpt, just append new text
+            new_notes = current_notes + "\n" + new_excerpt
+        else:
+            if old_excerpt not in current_notes:
+                return f"Error: Could not find the exact text to replace in {note_topic} notes"
+            new_notes = current_notes.replace(old_excerpt, new_excerpt)
+        
+        with open(f'data/{student_name_safe}_{note_topic}.txt', 'w') as f:
+            f.write(new_notes)
+        return f"Changes saved. New version of {note_topic} notes:\n{new_notes}"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-def call_llm_with_tools(user_message, student_name_safe, messages=[], tools=None, max_turns=10):
+def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10):
     MODEL_NAME = 'claude-3-5-sonnet-latest'
-    messages.append({"role": "user", "content": user_message})
-
-    response = anthropic_client.messages.create(
-        model=MODEL_NAME,
-        max_tokens=8192,
-        temperature=0,
-        tools=tools,
-        messages=messages
-    )
     turn_i = 0
     first_turn = True
     text_to_student = ''
@@ -28,7 +41,7 @@ def call_llm_with_tools(user_message, student_name_safe, messages=[], tools=None
         response = anthropic_client.messages.create(
             model=MODEL_NAME,
             max_tokens=8192,
-            temperature=0,
+            #temperature=0,
             tools=tools,
             messages=messages
         )
@@ -42,23 +55,23 @@ def call_llm_with_tools(user_message, student_name_safe, messages=[], tools=None
             tool_name = tool_use.name
             tool_input = tool_use.input
 
-            print(f"\nTool Used: {tool_name}")
-            print(f"  Tool Input:")
-            print(json.dumps(tool_input, indent=2))
-            if tool_name== 'get_drugs_for_atc_code':
-                try:
-                    drugs = get_drugs_for_atc_code(tool_input['atc_code'])
-                    if drugs:
-                        tool_result = ', '.join(drugs)
-                    else:
-                        tool_result = 'No matching anticancer drugs found'
-                    print(f'  Tool Result: {tool_result}')
-                except Exception as e:
-                    print(f'  Error: {e}')
-                    tool_result = f'Error: {e}'
-            else:
-                print(f'  Unknown tool: {tool_name}')
-                tool_result = f'Unknown tool: {tool_name}'
+            print(f"\n{colored(f'Tool Used: {tool_name}', 'green')}")
+            print(f"  {colored('Tool Input:', 'yellow')}")
+            print(colored(json.dumps(tool_input, indent=2), 'yellow'))
+            
+            try:
+                if tool_name == 'get_notes':
+                    tool_result = get_notes(student_name_safe, tool_input['note_topic'])
+                elif tool_name == 'edit_notes':
+                    tool_result = edit_notes(student_name_safe, tool_input['note_topic'], 
+                                          tool_input.get('old_excerpt', ''), tool_input['new_excerpt'])
+                else:
+                    tool_result = f'Error: Unknown tool {tool_name}'
+                print(f'  {colored(f"Tool Result: {tool_result}", "blue")}')
+            except Exception as e:
+                print(f'  {colored(f"Error: {e}", "red")}')
+                tool_result = f'Error: {e}'
+
             user_content_list.append({
                 "type": "tool_result",
                 "tool_use_id": tool_use.id,
@@ -85,4 +98,4 @@ def call_llm_with_tools(user_message, student_name_safe, messages=[], tools=None
 
         turn_i += 1
 
-    return text_to_student
+    return text_to_student, messages

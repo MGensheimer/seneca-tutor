@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
-from utils import get_notes, call_llm_with_tools
+from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp
+import pdb
 
 student_name = input('Input the name of the student.\n')
 student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_').lower()
@@ -13,12 +14,18 @@ note_defaults = {
 }
 note_topics = note_defaults.keys()
 
+# Create data directory if it doesn't exist
+if not os.path.exists('data'):
+    os.makedirs('data')
+
 #create student data if it doesn't exist
 for topic in note_topics:
     if not os.path.exists(f'data/{student_name_safe}_{topic}.txt'):
         if topic=='student_info':
             user_input = input('Input the student\'s age, gender, desired topic of study, current experience level, and any other information that would be helpful to the tutor.\n')
             text_for_topic = f'User-supplied information for student {student_name} (edit as needed):\n{user_input}'
+        elif topic=='lesson_plan':
+            text_for_topic = f'Tutoring first started at: {get_timestamp()}. No lesson plan has been created; please create one.'
         else:
             text_for_topic = note_defaults[topic]
 
@@ -27,27 +34,50 @@ for topic in note_topics:
 
 tools = [
     {
-        "name": "get_drugs_for_atc_code",
-        "description": "List all FDA-approved anticancer drugs for a given 1st-4th level WHO ATC code. If ATC code invalid, returns this fact as a string. This tool can be used with parallel tool use.",
+        "name": "get_notes",
+        "description": "Get the full text of notes for the specified topic",
         "input_schema": {
             "type": "object",
             "properties": {
-                "atc_code": {
+                "note_topic": {
                     "type": "string",
-                    "description": "The ATC code, e.g. L01FF (this 4th level code will list all PD-1/PDL-1 inhibitors)"
+                    "enum": ["student_info", "lesson_plan", "past_problems", "personal_interactions"],
+                    "description": "The topic of notes to retrieve"
                 }
             },
-            "required": ["atc_code"]
+            "required": ["note_topic"]
         }
-    }
+    },
+    {
+        "name": "edit_notes",
+        "description": "Edit the notes for the specified topic by replacing old text with new text",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "note_topic": {
+                    "type": "string",
+                    "enum": ["student_info", "lesson_plan", "past_problems", "personal_interactions"],
+                    "description": "The topic of notes to edit"
+                },
+                "old_excerpt": {
+                    "type": "string",
+                    "description": "The text to replace (leave empty to append)"
+                },
+                "new_excerpt": {
+                    "type": "string",
+                    "description": "The new text to insert"
+                }
+            },
+            "required": ["note_topic", "new_excerpt"]
+        }
+    },
 ]
 
 notes_content = ''
 for topic in note_topics:
     notes_content += f'<notes topic="{topic}">\n{get_notes(student_name_safe, topic)}\n</notes>\n'
 
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-first_prompt = """
+first_prompt = f"""
 You are a private tutor for a student. You will give the student problems or challenges that can be answered fairly quickly, check their answers, and help them if they get stuck. Your goal is to help the student improve their skills and get excited about the topic, while maintaining detailed notes on their progress.
 When creating a new problem or challenge, the steps will be:
 1. Write out the problem, what topic it falls under, the difficulty/grade level, and how challenging you expect it to be for the specific student you are tutoring. Use <problem></problem> tags.
@@ -68,7 +98,37 @@ Before we begin, here is the current content of your notes about the student:
 {notes_content}
 </notes_content>
 
-Here is the current timestamp: {timestamp}
+Here is the current timestamp: {get_timestamp()}
 
 Let's get started! Please give the student their first problem. Remember, only text within <to_student> blocks will be shown to the student.
 """
+
+# Initialize conversation
+messages = [{"role": "user", "content": first_prompt}]
+text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools)
+print("\nTutor:", text_to_student)
+
+# Main chat loop
+while True:
+    try:
+        user_input = input("\nYou (type 'quit' to end): ").strip()
+        if user_input.lower() == 'quit':
+            break
+        
+        if not user_input:
+            print("\nPlease enter a message.")
+            continue
+
+        wrapped_input = f"Timestamp: {get_timestamp()}\n<from_student>{user_input}</from_student>"
+        messages.append({"role": "user", "content": wrapped_input})
+        text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools)
+        print("\nTutor:", text_to_student)
+        
+    except KeyboardInterrupt:
+        print("\nExiting...")
+        break
+    except Exception as e:
+        print(f"\nAn error occurred: {str(e)}")
+        print("Please try again.")
+
+print("\nThanks for the session! Goodbye!")
