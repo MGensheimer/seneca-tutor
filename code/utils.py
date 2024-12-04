@@ -47,7 +47,9 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10):
         )
 
         if turn_i >= max_turns:
-            raise ValueError(f'Max turns reached ({max_turns})')
+            print(colored(f'Max turns reached ({max_turns})', 'red'))
+            return text_to_student, messages
+            #raise ValueError(f'Max turns reached ({max_turns})')
 
         user_content_list = []
 
@@ -87,14 +89,15 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10):
         if turn_i == max_turns-1:
             user_content_list.append({
                 "type": "text",
-                "text": "WARNING: Maximum number of turns reached. This will be your final response. Do not call any more tools."
+                "text": "WARNING: Maximum number of turns reached. You get one more response. Do not call any more tools."
             })
 
         messages.append({"role": "assistant", "content": response.content})
-        messages.append({
-            "role": "user",
-            "content": user_content_list,
-        })
+        if user_content_list:
+            messages.append({
+                "role": "user",
+                "content": user_content_list,
+            })
 
         turn_i += 1
 
