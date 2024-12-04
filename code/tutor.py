@@ -1,9 +1,11 @@
 import os
 from datetime import datetime
-from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp
+from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp, count_tokens
+from termcolor import colored
 import pdb
 
 verbose_output = True
+max_input_tokens=80000
 
 student_name = input('Input the name of the student.\n')
 student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_').lower()
@@ -75,11 +77,18 @@ tools = [
     },
 ]
 
-notes_content = ''
-for topic in note_topics:
-    notes_content += f'<notes topic="{topic}">\n{get_notes(student_name_safe, topic)}\n</notes>\n'
+# Main chat loop
+user_input = ''
+while user_input.lower() != 'quit':
+    # Start a new conversation
+    if verbose_output:
+        print(colored('Starting a new conversation...', 'green'))
+    
+    notes_content = ''
+    for topic in note_topics:
+        notes_content += f'<notes topic="{topic}">\n{get_notes(student_name_safe, topic)}\n</notes>\n'
 
-first_prompt = f"""
+    first_prompt = f"""
 You are a private tutor for a student. You will give the student problems or challenges that can be answered fairly quickly, check their answers, and help them if they get stuck. Your goal is to help the student improve their skills and get excited about the topic, while maintaining detailed notes on their progress.
 When creating a new problem or challenge, the steps will be:
 1. Write out the problem, what topic it falls under, the difficulty/grade level, and how challenging you expect it to be for the specific student you are tutoring. Use <problem></problem> tags.
@@ -103,39 +112,52 @@ Before we begin, here is the current content of your notes about the student:
 Here is the current timestamp: {get_timestamp()}
 
 Let's get started! Please give the student their first problem. Remember, only text within <to_student> blocks will be shown to the student.
-"""
+    """
 
-# Initialize conversation
-messages = [{"role": "user", "content": first_prompt}]
-text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
-print("\nTutor:", text_to_student)
-
-# Main chat loop
-while True:
-    try:
-        user_input = input("\nYou (type 'quit' to end): ").strip()
-        if user_input.lower() == 'quit':
-            break
-        
-        if not user_input:
-            print("\nPlease enter a message.")
-            continue
-
-        wrapped_input = f"Timestamp: {get_timestamp()}\n<from_student>{user_input}</from_student>"
-        messages.append({"role": "user", "content": wrapped_input})
-        text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
-        print("\nTutor:", text_to_student)
-        
-    except KeyboardInterrupt:
-        print("\nExiting...")
-        break
-    except Exception as e:
-        print(f"\nAn error occurred: {str(e)}")
-        print("Please try again.")
-
-messages.append({"role": "user", "content": 'The student has ended the tutoring session. Please make any last updates to your notes. This would be a good time to update the lesson plan so you are ready for the next session.'})
-text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
-if verbose_output:
+    messages = [{"role": "user", "content": first_prompt}]
+    text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
     print("\nTutor:", text_to_student)
+    while True:
+        try:
+            user_input = input("\nYou (type 'quit' to end or 'next question' to save your work and move to another question): ").strip()
+            if user_input.lower() in ['quit', 'next question']:
+                break
+            
+            if not user_input:
+                print("\nPlease enter a message.")
+                continue
+
+            wrapped_input = f"Timestamp: {get_timestamp()}\n<from_student>{user_input}</from_student>"
+            messages.append({"role": "user", "content": wrapped_input})
+            input_token_count = count_tokens(messages, tools)
+            text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
+            print("\nTutor:", text_to_student)
+
+            if verbose_output:
+                print(colored(f'Input token count: {input_token_count}', 'green'))
+
+            if input_token_count > max_input_tokens:
+                print(colored('Conversation reached maximum length. Starting a new question.', 'red'))
+                user_input = 'quit'
+                break
+
+        except KeyboardInterrupt:
+            user_input = 'quit'
+            break
+        except Exception as e:
+            print(f"\nAn error occurred: {str(e)}")
+            print("Please try again.")
+
+    if user_input.lower()=='next question':
+        messages.append({"role": "user", "content": 'The student has ended the tutoring session because they want to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan so you are ready for the next session.'})
+        if verbose_output:
+            print(colored('User wants next question. Updating lesson plan.', 'green'))
+    else:
+        messages.append({"role": "user", "content": 'The tutoring session has ended because the user wants to stop or maximum tokens reached. Please make any last updates to your notes. This would be a good time to update the lesson plan so you are ready for the next session.'})
+        if verbose_output:
+            print(colored('User wants to quit the session. Updating lesson plan.', 'green'))
+    text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
+    if verbose_output:
+        print("\nTutor:", text_to_student)
 
 print("\nThanks for the session! Goodbye!")

@@ -5,8 +5,18 @@ from termcolor import colored
 from datetime import datetime
 anthropic_client = anthropic.Anthropic()
 
+MODEL_NAME = 'claude-3-5-sonnet-latest'
+
 def get_timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def count_tokens(messages, tools=None):
+    response = anthropic_client.beta.messages.count_tokens(
+        model=MODEL_NAME,
+        tools=tools,
+        messages=messages,
+    )
+    return response.input_tokens
 
 def get_notes(student_name_safe, note_topic):
     try:
@@ -32,7 +42,6 @@ def edit_notes(student_name_safe, note_topic, old_excerpt, new_excerpt):
         return f"Error: {str(e)}"
 
 def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, verbose_output=False):
-    MODEL_NAME = 'claude-3-5-sonnet-latest'
     turn_i = 0
     first_turn = True
     text_to_student = ''
