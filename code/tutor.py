@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp, count_tokens
 from termcolor import colored
+import anthropic
 import pdb
 
 verbose_output = True
@@ -54,7 +55,7 @@ tools = [
     },
     {
         "name": "edit_notes",
-        "description": "Edit the notes for the specified topic by replacing old text with new text",
+        "description": "Edit the notes for the specified topic by replacing old text with new text, or deleting old text if new_excerpt is empty",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -69,10 +70,24 @@ tools = [
                 },
                 "new_excerpt": {
                     "type": "string",
-                    "description": "The new text to insert"
+                    "description": "The new text to insert (leave empty to delete the old_excerpt)"
                 }
             },
-            "required": ["note_topic", "new_excerpt"]
+            "required": ["note_topic"]
+        }
+    },
+    {
+        "name": "finish_question",
+        "description": "Use this when you want to finish the current question and start a new one. This will start a new conversation with fresh context.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "description": "The reason for finishing this question (e.g., 'Student has mastered this concept', 'Student is struggling too much')"
+                }
+            },
+            "required": ["reason"]
         }
     },
 ]
@@ -104,6 +119,8 @@ During all this, you should be keeping all your notes up to date using tool call
 - past_problems: Use this to store problems that the student could not get right even after several tries, so that you can come back to them later once the student has progressed in their skills and is ready to try again.
 - personal_interactions: This is for memories of your social connection with the student. For instance, if you or the student shared a personal detail that you think could be helpful when bonding with the student in the future.
 
+Make sure none of the notes get too long; you should keep each one to about a page of text or less. If they get too long, use the edit_notes tool to trim them.
+
 Before we begin, here is the current content of your notes about the student:
 <notes_content>
 {notes_content}
@@ -111,7 +128,7 @@ Before we begin, here is the current content of your notes about the student:
 
 Here is the current timestamp: {get_timestamp()}
 
-Let's get started! Please give the student their first problem. Remember, only text within <to_student> blocks will be shown to the student.
+Let's get started! If there is no lesson plan, then draft one and tell the student about it to get feedback, and modify as needed using tool calls. Then give the student their first problem. Otherwise, go ahead with the first problem. Remember, only text within <to_student> blocks will be shown to the student.
     """
 
     messages = [{"role": "user", "content": first_prompt}]
@@ -131,6 +148,22 @@ Let's get started! Please give the student their first problem. Remember, only t
             messages.append({"role": "user", "content": wrapped_input})
             input_token_count = count_tokens(messages, tools)
             text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)
+            
+            # Check if the LLM wants to finish the question
+            llm_called_finish_question_tool = False
+            for message in messages:
+                for content_item in message['content']:
+                    if type(content_item)==anthropic.types.tool_use_block.ToolUseBlock:
+                        if content_item.name == 'finish_question':
+                            llm_called_finish_question_tool = True
+                            break
+            
+            if llm_called_finish_question_tool:
+                if verbose_output:
+                    print(colored(f'LLM wants to finish question.', 'yellow'))
+                user_input = 'next question'
+                break
+            
             print("\nTutor:", text_to_student)
 
             if verbose_output:
@@ -149,11 +182,11 @@ Let's get started! Please give the student their first problem. Remember, only t
             print("Please try again.")
 
     if user_input.lower()=='next question':
-        messages.append({"role": "user", "content": 'The student has ended the tutoring session because they want to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan so you are ready for the next session.'})
+        messages.append({"role": "user", "content": 'The session has ended because the student or tutor wants to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'})
         if verbose_output:
-            print(colored('User wants next question. Updating lesson plan.', 'green'))
+            print(colored('Going to next question. Updating lesson plan.', 'green'))
     else:
-        messages.append({"role": "user", "content": 'The tutoring session has ended because the user wants to stop or maximum tokens reached. Please make any last updates to your notes. This would be a good time to update the lesson plan so you are ready for the next session.'})
+        messages.append({"role": "user", "content": 'The tutoring session has ended because the user wants to stop or maximum tokens reached. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'})
         if verbose_output:
             print(colored('User wants to quit the session. Updating lesson plan.', 'green'))
     text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=verbose_output)

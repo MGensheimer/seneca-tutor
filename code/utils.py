@@ -1,14 +1,16 @@
-import anthropic
 import json
 from bs4 import BeautifulSoup
 from termcolor import colored
 from datetime import datetime
+
+import anthropic
 anthropic_client = anthropic.Anthropic()
 
 MODEL_NAME = 'claude-3-5-sonnet-latest'
 
 def get_timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
 def count_tokens(messages, tools=None):
     response = anthropic_client.beta.messages.count_tokens(
@@ -18,6 +20,7 @@ def count_tokens(messages, tools=None):
     )
     return response.input_tokens
 
+
 def get_notes(student_name_safe, note_topic):
     try:
         with open(f'data/{student_name_safe}_{note_topic}.txt', 'r') as f:
@@ -25,21 +28,32 @@ def get_notes(student_name_safe, note_topic):
     except FileNotFoundError:
         return f"Error: No notes found for {note_topic}"
 
+
 def edit_notes(student_name_safe, note_topic, old_excerpt, new_excerpt):
     try:
+        # Return error if both excerpts are empty
+        if not old_excerpt and not new_excerpt:
+            return "Error: Both old_excerpt and new_excerpt cannot be empty"
+            
         current_notes = get_notes(student_name_safe, note_topic)
         if not old_excerpt:  # If no old_excerpt, just append new text
             new_notes = current_notes + "\n" + new_excerpt
         else:
             if old_excerpt not in current_notes:
                 return f"Error: Could not find the exact text to replace in {note_topic} notes"
-            new_notes = current_notes.replace(old_excerpt, new_excerpt)
+            # If new_excerpt is empty, just remove old_excerpt
+            new_notes = current_notes.replace(old_excerpt, new_excerpt if new_excerpt else "")
         
         with open(f'data/{student_name_safe}_{note_topic}.txt', 'w') as f:
             f.write(new_notes)
         return f"Changes saved. New version of {note_topic} notes:\n{new_notes}"
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+def finish_question(student_name_safe, reason):
+    return ("FINISH_QUESTION: " + reason)
+
 
 def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, verbose_output=False):
     turn_i = 0
@@ -62,7 +76,7 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, v
             #raise ValueError(f'Max turns reached ({max_turns})')
 
         user_content_list = []
-
+        finish_question_tool_called = False
         for tool_use in [block for block in response.content if block.type == "tool_use"]:
             tool_name = tool_use.name
             tool_input = tool_use.input
@@ -79,6 +93,8 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, v
                         student_name_safe,  # Always pass student_name_safe as first arg
                         **tool_input  # Unpack remaining parameters from tool input
                     )
+                    if tool_name == 'finish_question':
+                        finish_question_tool_called = True
                 else:
                     tool_result = f'Error: Tool {tool_name} not found'
                 if verbose_output:
@@ -113,6 +129,10 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, v
                 "content": user_content_list,
             })
 
+        if finish_question_tool_called:
+            break
+
         turn_i += 1
 
     return text_to_student, messages
+
