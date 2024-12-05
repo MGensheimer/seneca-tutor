@@ -10,8 +10,8 @@
     <div class="flex flex-col h-screen">
         <!-- Header -->
         <header class="bg-white shadow-sm p-4 flex-none">
-            <div class="container mx-auto flex justify-between items-center">
-                <div class="flex items-center">
+            <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
                     <h1 class="text-xl font-bold">Tutor's Chat with {{ student_name_safe }}</h1>
                 </div>
                 <div class="flex items-center space-x-6">
@@ -58,7 +58,7 @@
                     <textarea 
                            name="user_input" 
                            id="messageInput"
-                           placeholder="Type your message... (Enter to send, Shift+Enter for new line)" 
+                           placeholder="Type your message (Enter to send, Shift+Enter for new line)" 
                            class="flex-1 rounded-md border border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 min-h-[44px] max-h-[200px] resize-none p-2"
                            rows="1"
                            required></textarea>

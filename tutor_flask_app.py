@@ -15,7 +15,7 @@ MAX_INPUT_TOKENS = 80000
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'insecure-key')
 
-note_topics = ['student_info', 'lesson_plan', 'past_problems', 'personal_interactions']
+note_topics = ['student_info', 'lesson_plan', 'past_problems']
 
 def get_student_list():
     """Get list of students from data directory"""
@@ -105,13 +105,12 @@ When creating a new problem or challenge, the steps will be:
 The student's responses will be wrapped in <from_student></from_student> tags. After the student responds, if they are correct, then congratulate them, make any relevant comments on the strategy they used to, and move on to the next problem. If they are wrong, then engage with them as a tutor would, to try to understand why they are getting it wrong. This could include asking them to tell you the steps they used to solve the problem, giving them small hints to try to nudge them in the right direction, or teaching them about needed concepts.
 If the student still cannot get to the right answer after several turns back and forth and you think it's time to move to the next problem, make a note in the skills note using tool calling, then move to the next problem and notify the student.
 
-During all this, you should be keeping all your notes up to date using tool calls. Here is a guide to the different notes:
-- student_info: The student's grade level or professional situation, what areas they want to focus on, learning style, strategies that have worked well or poorly with them.
+During the conversation, you should be keeping all your notes up to date using tool calls. Here is a guide to the different notes:
+- student_info: The student's grade level or professional situation, what areas they want to focus on, learning style, strategies that have worked well or poorly with them. Also use this to store memories of your social connection with the student. For instance, if you or the student shared a personal detail that you think could be helpful when bonding in the future.
 - lesson_plan: Start with a summary of short and long-term goals. Then have a list of topics that you want to cover, with details. Details include the material to cover, where the student is at (no proficiency, progressing, mastery). Use timestamps to keep track of when the topic was started and most recently worked on.
 - past_problems: Use this to store problems that the student could not get right even after several tries, so that you can come back to them later once the student has progressed in their skills and is ready to try again.
-- personal_interactions: This is for memories of your social connection with the student. For instance, if you or the student shared a personal detail that you think could be helpful when bonding with the student in the future.
 
-Make sure none of the notes get too long; you should keep each one to about a page of text or less. If they get too long, use the edit_notes tool to trim them.
+Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
 
 Before we begin, here is the current content of your notes about the student:
 <notes_content>
@@ -120,7 +119,13 @@ Before we begin, here is the current content of your notes about the student:
 
 Here is the current timestamp: {get_timestamp()}
 
-Let's get started! If there is no lesson plan, then draft one and tell the student about it to get feedback, and modify as needed using tool calls. Then give the student their first problem. Otherwise, go ahead with the problem. If your notes indicate the student has done prior work with you, don't refer to it as the first problem. Remember, only text within <to_student> blocks will be shown to the student.
+Let's get started! If there is no lesson plan, then draft one and tell the student about it to get feedback, and modify as needed using tool calls. Then give the student their first problem. Otherwise, go ahead with the problem.
+
+A few last notes/reminders:
+- If your notes indicate the student has done prior work with you, the chat session is continuing from where they left off, so don't refer to it as the first problem.
+- Only text within <to_student> blocks will be shown to the student.
+- If the chat history gets quite long, call the finish_question tool to start a new session.
+- I store your chat history in a JSON serializable format, so you will see your tool calls from prior turns within <tool_call> tags instead of ToolUseBlock objects. But when you make new tool calls, do them in your standard way, not using the <tool_call> tags.
     """
     return first_user_message
 
@@ -149,7 +154,6 @@ def new_student():
             'student_info': f'User-supplied information for student with identifier {student_name}:\n{student_info}',
             'lesson_plan': f'Tutoring first started at: {get_timestamp()}. No lesson plan has been created; please create one.',
             'past_problems': 'No past problems.',
-            'personal_interactions': 'No personal interactions.'
         }
         
         for topic, content in note_defaults.items():
@@ -179,7 +183,7 @@ def chat():
                 "properties": {
                     "note_topic": {
                         "type": "string",
-                        "enum": ["student_info", "lesson_plan", "past_problems", "personal_interactions"],
+                        "enum": ["student_info", "lesson_plan", "past_problems"],
                         "description": "The topic of notes to retrieve"
                     }
                 },
@@ -194,7 +198,7 @@ def chat():
                 "properties": {
                     "note_topic": {
                         "type": "string",
-                        "enum": ["student_info", "lesson_plan", "past_problems", "personal_interactions"],
+                        "enum": ["student_info", "lesson_plan", "past_problems"],
                         "description": "The topic of notes to edit"
                     },
                     "old_excerpt": {
@@ -225,13 +229,17 @@ def chat():
         },
     ]
 
+    session['llm_wants_new_question'] = False #If LLM wants a new question, we already used this in the call to the chat template so can reset it here
+
     if 'chat_uuid' not in session:
         session['chat_uuid'] = str(uuid.uuid4())
+        print(colored(f'New chat session started. Assigning UUID: {session["chat_uuid"]}', 'green'))
     
     need_to_call_llm = False
     messages = load_chat_history(session['student_name_safe'], session['chat_uuid'])
 
     if not messages:
+        print(colored(f'No chat history found. Creating first user message.', 'yellow'))
         messages = [{"role": "user", "content": make_first_user_message(session['student_name_safe'])}]
         need_to_call_llm = True
 
@@ -243,7 +251,7 @@ def chat():
                     "role": "user", 
                     "content": 'The session has ended because the student or tutor wants to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'
                 })
-                print(f'Length of messages before LLM call: {len(messages)}')
+                print(f'Going to start a new chat. Length of messages before LLM call: {len(messages)}')
                 _, messages_anthropic_format = call_llm_with_tools(
                     session['student_name_safe'], 
                     messages, 
@@ -262,6 +270,7 @@ def chat():
 
             # Start new chat session
             session['chat_uuid'] = str(uuid.uuid4())
+            print(colored(f'New chat session started. Assigning UUID: {session["chat_uuid"]}', 'green'))
             messages = [{"role": "user", "content": make_first_user_message(session['student_name_safe'])}]
             need_to_call_llm = True
             
@@ -282,7 +291,7 @@ def chat():
 
         # Check if LLM called finish_question
         llm_wants_new_question = False
-        for message in messages:
+        for message in messages_anthropic_format:
             if isinstance(message.get('content'), list):
                 for content_item in message['content']:
                     if isinstance(content_item, anthropic.types.tool_use_block.ToolUseBlock):
@@ -291,6 +300,8 @@ def chat():
                             break
 
         session['llm_wants_new_question'] = llm_wants_new_question
+        if llm_wants_new_question:
+            print(colored(f'LLM wants to start a new question', 'yellow'))
 
         # Save chat history to file
         save_chat_history(
