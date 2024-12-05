@@ -132,7 +132,7 @@ Let's get started! If there is no lesson plan, then draft one and tell the stude
     """
 
     messages = [{"role": "user", "content": first_prompt}]
-    text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, VERBOSE_OUTPUT=VERBOSE_OUTPUT)
+    text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=VERBOSE_OUTPUT)
     print("\nTutor:", text_to_student)
     while True:
         try:
@@ -147,7 +147,7 @@ Let's get started! If there is no lesson plan, then draft one and tell the stude
             wrapped_input = f"Timestamp: {get_timestamp()}\n<from_student>{user_input}</from_student>"
             messages.append({"role": "user", "content": wrapped_input})
             input_token_count = count_tokens(messages, tools)
-            text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, VERBOSE_OUTPUT=VERBOSE_OUTPUT)
+            text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=VERBOSE_OUTPUT)
             
             # Check if the LLM wants to finish the question
             llm_called_finish_question_tool = False
@@ -181,6 +181,8 @@ Let's get started! If there is no lesson plan, then draft one and tell the stude
             print(f"\nAn error occurred: {str(e)}")
             print("Please try again.")
 
+        pdb.set_trace()
+
     if user_input.lower()=='next question':
         messages.append({"role": "user", "content": 'The session has ended because the student or tutor wants to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'})
         if VERBOSE_OUTPUT:
@@ -189,7 +191,7 @@ Let's get started! If there is no lesson plan, then draft one and tell the stude
         messages.append({"role": "user", "content": 'The tutoring session has ended because the user wants to stop or maximum tokens reached. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'})
         if VERBOSE_OUTPUT:
             print(colored('User wants to quit the session. Updating lesson plan.', 'green'))
-    text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, VERBOSE_OUTPUT=VERBOSE_OUTPUT)
+    text_to_student, messages = call_llm_with_tools(student_name_safe, messages, tools, verbose_output=VERBOSE_OUTPUT)
     if VERBOSE_OUTPUT:
         print("\nTutor:", text_to_student)
 

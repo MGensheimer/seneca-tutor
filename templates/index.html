@@ -3,17 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Tutor</title>
+    <title>Personal Tutor: Select a Student</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
-<body>
-    <header>
-        <h1 class="text-2xl font-bold">Personal Tutor</h1>
-    </header>
-    <main>
-        <p>Select a student to begin.</p>
-    </main>
-    <footer>
-    </footer>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Personal Tutor</h1>
+        </header>
+        
+        <main>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Select a Student</h2>
+                
+                {% if students %}
+                    <ul class="space-y-2">
+                    {% for student in students %}
+                        <li>
+                            <a href="{{ url_for('select_student', student_name_safe=student) }}" 
+                               class="block p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 hover:border-gray-300">
+                                {{ student }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-gray-600">No students found.</p>
+                {% endif %}
+                
+                <div class="mt-6">
+                    <a href="{{ url_for('new_student') }}" 
+                       class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        Create New Student
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
 </body>
 </html>

@@ -3,17 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Tutor</title>
+    <title>Personal Tutor: Chat with {{ student_name_safe }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
-<body>
-    <header>
-        <h1 class="text-2xl font-bold">Personal Tutor</h1>
-    </header>
-    <main>
-        <p>Placeholder</p>
-    </main>
-    <footer>
-    </footer>
+<body class="bg-gray-100">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm p-4 flex-none">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold">Tutor's Chat with {{ student_name_safe }}</h1>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <form method="POST" class="flex items-center">
+                        <input type="hidden" name="action" value="new_chat">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                            New Question/Chat
+                        </button>
+                    </form>
+                    <a href="/" 
+                       class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        Select/Create Student
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main content wrapper -->
+        <div class="flex-1 overflow-hidden relative">
+            <!-- Chat Messages -->
+            <div class="absolute inset-0 overflow-y-auto">
+                <div class="p-4">
+                    <div class="container mx-auto max-w-3xl space-y-4">
+                        {% for message in chat_messages %}
+                            <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'tutor' %}border-l-4 border-blue-500{% else %}border-l-4 border-green-500{% endif %}">
+                                <div class="text-sm text-gray-500 mb-1">
+                                    {{ message.role|title }}
+                                </div>
+                                <div class="prose">
+                                    {{ message.content }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="border-t bg-white p-4 flex-none">
+            <div class="container mx-auto max-w-3xl">
+                <form method="POST" class="flex space-x-4" id="messageForm">
+                    <textarea 
+                           name="user_input" 
+                           id="messageInput"
+                           placeholder="Type your message... (Enter to send, Shift+Enter for new line)" 
+                           class="flex-1 rounded-md border border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 min-h-[44px] max-h-[200px] resize-none p-2"
+                           rows="1"
+                           required></textarea>
+                    <button type="submit" 
+                            class="h-10 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messageInput = document.getElementById('messageInput');
+        const messageForm = document.getElementById('messageForm');
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            // Reset height to auto to get the correct scrollHeight
+            this.style.height = 'auto';
+            // Set new height based on scrollHeight
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        // Handle Enter and Shift+Enter
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    if (this.value.trim()) {
+                        messageForm.submit();
+                    }
+                }
+            }
+        });
+
+        {% if llm_wants_new_question %}
+        // Show dialog when LLM wants to move to new question
+        window.onload = function() {
+            if (confirm("The tutor would like to move to a new question. Click OK to proceed.")) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'action';
+                input.value = 'new_chat';
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        };
+        {% endif %}
+    </script>
 </body>
 </html>

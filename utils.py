@@ -29,7 +29,7 @@ def get_notes(student_name_safe, note_topic):
         return f"Error: No notes found for {note_topic}"
 
 
-def edit_notes(student_name_safe, note_topic, old_excerpt, new_excerpt):
+def edit_notes(student_name_safe, note_topic, old_excerpt=None, new_excerpt=None):
     try:
         # Return error if both excerpts are empty
         if not old_excerpt and not new_excerpt:
