@@ -33,7 +33,7 @@ def get_student_list():
     return sorted(list(students))
 
 
-def messages_to_string(messages):
+def anthropic_to_string_format(messages):
     messages_for_serialize = []
     for message in messages:
         message_text = ''
@@ -55,44 +55,21 @@ def messages_to_string(messages):
 
 
 def extract_chat_messages(messages):
-    """Extract student and tutor messages from the messages list"""
+    """Extract student and tutor text from the messages list (the text that should be displayed to the user)"""
     chat_messages = []
     for message in messages:
+        soup = BeautifulSoup(message['content'], 'html.parser')
         if message['role'] == 'assistant':
-            # Handle list-type content (TextBlocks, ToolUseBlocks)
-            if isinstance(message['content'], list):
-                for content in message['content']:
-                    if isinstance(content, anthropic.types.text_block.TextBlock):
-                        soup = BeautifulSoup(content.text, 'html.parser')
-                        student_messages = soup.find_all('to_student')
-                        filtered_messages = [msg.get_text() for msg in student_messages if msg.get_text() not in ['', '\n']]
-                        if filtered_messages:
-                            chat_messages.append({
-                                'role': 'tutor',
-                                'content': '\n'.join(filtered_messages)
-                            })
-            elif isinstance(message['content'], str):  # used for text from assistant to user
-                soup = BeautifulSoup(message['content'], 'html.parser')
-                student_messages = soup.find_all('to_student')
-                filtered_messages = [msg.get_text() for msg in student_messages if msg.get_text() not in ['', '\n']]
-                if filtered_messages:
-                    chat_messages.append({
-                        'role': 'tutor',
-                        'content': '\n'.join(filtered_messages)
-                    })
-            elif VERBOSE_OUTPUT:
-                print(colored(f'Error: Unexpected content type from assistant: {type(message["content"])}', 'red'))
+            student_messages = soup.find_all('to_student')
         elif message['role'] == 'user':
-            if isinstance(message['content'], str):
-                soup = BeautifulSoup(message['content'], 'html.parser')
-                student_messages = soup.find_all('from_student')
-                if student_messages:
-                    filtered_messages = [msg.get_text() for msg in student_messages if msg.get_text() not in ['', '\n']]
-                    if filtered_messages:
-                        chat_messages.append({
-                            'role': 'student',
-                            'content': '\n'.join(filtered_messages)
-                        })
+            student_messages = soup.find_all('from_student')
+        if student_messages:
+            filtered_messages = [msg.get_text() for msg in student_messages if msg.get_text() not in ['', '\n']]
+            if filtered_messages:
+                chat_messages.append({
+                    'role': message['role'],
+                    'content': '\n'.join(filtered_messages)
+                })
     return chat_messages
 
 
@@ -143,7 +120,7 @@ Before we begin, here is the current content of your notes about the student:
 
 Here is the current timestamp: {get_timestamp()}
 
-Let's get started! If there is no lesson plan, then draft one and tell the student about it to get feedback, and modify as needed using tool calls. Then give the student their first problem. Otherwise, go ahead with the first problem. Remember, only text within <to_student> blocks will be shown to the student.
+Let's get started! If there is no lesson plan, then draft one and tell the student about it to get feedback, and modify as needed using tool calls. Then give the student their first problem. Otherwise, go ahead with the problem. If your notes indicate the student has done prior work with you, don't refer to it as the first problem. Remember, only text within <to_student> blocks will be shown to the student.
     """
     return first_user_message
 
@@ -267,15 +244,22 @@ def chat():
                     "content": 'The session has ended because the student or tutor wants to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'
                 })
                 print(f'Length of messages before LLM call: {len(messages)}')
-                _, messages = call_llm_with_tools(
+                _, messages_anthropic_format = call_llm_with_tools(
                     session['student_name_safe'], 
                     messages, 
                     tools, 
                     verbose_output=VERBOSE_OUTPUT
                 )
+                messages = anthropic_to_string_format(messages_anthropic_format)
                 print(f'Length of messages after LLM call: {len(messages)}')
-                save_chat_history(session['student_name_safe'], session['chat_uuid'], messages)
-            
+
+                # Save chat history to file
+                save_chat_history(
+                    session['student_name_safe'],
+                    session['chat_uuid'],
+                    messages
+                )
+
             # Start new chat session
             session['chat_uuid'] = str(uuid.uuid4())
             messages = [{"role": "user", "content": make_first_user_message(session['student_name_safe'])}]
@@ -288,12 +272,13 @@ def chat():
             need_to_call_llm = True
 
     if need_to_call_llm:
-        text_to_student, messages = call_llm_with_tools(
+        _, messages_anthropic_format = call_llm_with_tools(
             session['student_name_safe'], 
             messages, 
             tools, 
             verbose_output=VERBOSE_OUTPUT
         )
+        messages = anthropic_to_string_format(messages_anthropic_format)
 
         # Check if LLM called finish_question
         llm_wants_new_question = False
@@ -311,7 +296,7 @@ def chat():
         save_chat_history(
             session['student_name_safe'],
             session['chat_uuid'],
-            messages_to_string(messages)
+            messages
         )
     
     #extract only the text that should be visible to the student
