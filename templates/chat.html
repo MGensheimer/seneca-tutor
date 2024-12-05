@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
 <body class="bg-gray-100">
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-lg p-6 flex items-center space-x-3">
+            <img src="{{ url_for('static', filename='images/circles.svg') }}" alt="Loading..." class="w-8 h-8">
+            <span class="text-white font-medium">Thinking...</span>
+        </div>
+    </div>
     <div class="flex flex-col h-screen">
         <!-- Header -->
         <header class="bg-white shadow-sm p-4 flex-none">
@@ -14,8 +20,8 @@
                 <div class="flex items-center mb-4 md:mb-0">
                     <h1 class="text-xl font-bold">Tutor's Chat with {{ student_name_safe }}</h1>
                 </div>
-                <div class="flex items-center space-x-6">
-                    <form method="POST" class="flex items-center">
+                <div class="flex items-center space-x-4">
+                    <form method="POST" class="flex items-center" id="newChatForm">
                         <input type="hidden" name="action" value="new_chat">
                         <button type="submit" 
                                 class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
@@ -38,10 +44,15 @@
                     <div class="container mx-auto max-w-3xl space-y-4">
                         {% for message in chat_messages %}
                             <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-blue-500{% else %}border-l-4 border-green-500{% endif %}">
-                                <div class="text-sm text-gray-500 mb-1">
-                                    {{ message.role|title }}
+                                <div class="flex justify-between items-center text-sm text-gray-500 mb-1">
+                                    <span>{{ message.role|title }}</span>
+                                    <button class="speak-button p-1 hover:bg-gray-100 rounded-full" aria-label="Read message aloud">
+                                        <img src="{{ url_for('static', filename='images/speaker-wave.svg') }}" 
+                                             alt="Speaker icon" 
+                                             class="w-5 h-5">
+                                    </button>
                                 </div>
-                                <div class="prose">
+                                <div class="prose speak-content">
                                     {{ message.content }}
                                 </div>
                             </div>
@@ -74,6 +85,7 @@
     <script>
         const messageInput = document.getElementById('messageInput');
         const messageForm = document.getElementById('messageForm');
+        const newChatForm = document.getElementById('newChatForm');
 
         // Auto-resize textarea
         messageInput.addEventListener('input', function() {
@@ -89,15 +101,19 @@
                 if (!e.shiftKey) {
                     e.preventDefault();
                     if (this.value.trim()) {
+                        document.getElementById('loadingOverlay').classList.remove('hidden');
                         messageForm.submit();
                     }
                 }
             }
         });
 
-        {% if llm_wants_new_question %}
-        // Show dialog when LLM wants to move to new question
+        // Scroll chat to bottom on page load
         window.onload = function() {
+            const chatContainer = document.querySelector('.absolute.inset-0.overflow-y-auto');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            {% if llm_wants_new_question %}
             if (confirm("The tutor would like to move to a new question. Click OK to proceed.")) {
                 const form = document.createElement('form');
                 form.method = 'POST';
@@ -109,8 +125,36 @@
                 document.body.appendChild(form);
                 form.submit();
             }
+            {% endif %}
         };
-        {% endif %}
+
+        // Speech synthesis functionality
+        document.querySelectorAll('.speak-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const content = this.closest('.bg-white').querySelector('.speak-content').textContent.trim();
+                
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(content);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                
+                window.speechSynthesis.speak(utterance);
+            });
+        });
+
+        // Handle message form submission
+        messageForm.addEventListener('submit', function(e) {
+            if (messageInput.value.trim()) {
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+            }
+        });
+
+        // Handle new chat form submission
+        newChatForm.addEventListener('submit', function(e) {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        });
     </script>
 </body>
 </html>

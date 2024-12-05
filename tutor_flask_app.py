@@ -90,13 +90,8 @@ def load_chat_history(student_name_safe, chat_uuid):
         return []
 
 
-def make_first_user_message(student_name_safe):
-    notes_content = ''
-    for topic in note_topics:
-        notes_content += f'<notes topic="{topic}">\n{get_notes(student_name_safe, topic)}\n</notes>\n'
-
-    first_user_message = f"""
-You are a private tutor for a student. You will give the student problems or challenges that can be answered fairly quickly, check their answers, and help them if they get stuck. Your goal is to help the student improve their skills and get excited about the topic, while maintaining detailed notes on their progress.
+def make_system_prompt():
+    return """You are a private tutor for a student. You will give the student problems or challenges that can be answered fairly quickly, check their answers, and help them if they get stuck. Your goal is to help the student improve their skills and get excited about the topic, while maintaining detailed notes on their progress.
 When creating a new problem or challenge, the steps will be:
 1. Write out the problem, what topic it falls under, the difficulty/grade level, and how challenging you expect it to be for the specific student you are tutoring. Use <problem></problem> tags.
 2. Write down the steps needed to solve the problem, and an acceptable answer. Use <solution></solution> tags.
@@ -110,9 +105,21 @@ During the conversation, you should be keeping all your notes up to date using t
 - lesson_plan: Start with a summary of short and long-term goals. Then have a list of topics that you want to cover, with details. Details include the material to cover, where the student is at (no proficiency, progressing, mastery). Use timestamps to keep track of when the topic was started and most recently worked on.
 - past_problems: Use this to store problems that the student could not get right even after several tries, so that you can come back to them later once the student has progressed in their skills and is ready to try again.
 
-Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
+Some notes/reminders:
+- Very important: Only text within <to_student> blocks will be shown to the student.
+- Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
+- If the chat history gets quite long, call the finish_question tool to start a new session.
+- I store your chat history in a JSON serializable format, so you will see your tool calls from prior turns within <tool_call> tags instead of ToolUseBlock objects. But when you make new tool calls, do them in your standard way, not using <tool_call> tags.
+"""
 
-Before we begin, here is the current content of your notes about the student:
+
+def make_first_user_message(student_name_safe):
+    notes_content = ''
+    for topic in note_topics:
+        notes_content += f'<notes topic="{topic}">\n{get_notes(student_name_safe, topic)}\n</notes>\n'
+
+    first_user_message = f"""
+Let's start a new problem/session. Here is the current content of your notes about the student:
 <notes_content>
 {notes_content}
 </notes_content>
@@ -120,13 +127,8 @@ Before we begin, here is the current content of your notes about the student:
 Here is the current timestamp: {get_timestamp()}
 
 Let's get started! If there is no lesson plan, then draft one and tell the student about it to get feedback, and modify as needed using tool calls. Then give the student their first problem. Otherwise, go ahead with the problem.
-
-A few last notes/reminders:
-- If your notes indicate the student has done prior work with you, the chat session is continuing from where they left off, so don't refer to it as the first problem.
-- Only text within <to_student> blocks will be shown to the student.
-- If the chat history gets quite long, call the finish_question tool to start a new session.
-- I store your chat history in a JSON serializable format, so you will see your tool calls from prior turns within <tool_call> tags instead of ToolUseBlock objects. But when you make new tool calls, do them in your standard way, not using the <tool_call> tags.
-    """
+If your notes indicate the student has done prior work with you, the chat session is continuing from where they left off, so don't refer to it as the first problem.
+"""
     return first_user_message
 
 
@@ -234,6 +236,8 @@ def chat():
     if 'chat_uuid' not in session:
         session['chat_uuid'] = str(uuid.uuid4())
         print(colored(f'New chat session started. Assigning UUID: {session["chat_uuid"]}', 'green'))
+    else:
+        print(colored(f'Continuing chat session with UUID: {session["chat_uuid"]}', 'green'))
     
     need_to_call_llm = False
     messages = load_chat_history(session['student_name_safe'], session['chat_uuid'])
@@ -254,6 +258,7 @@ def chat():
                 print(f'Going to start a new chat. Length of messages before LLM call: {len(messages)}')
                 _, messages_anthropic_format = call_llm_with_tools(
                     session['student_name_safe'], 
+                    make_system_prompt(),
                     messages, 
                     tools, 
                     verbose_output=VERBOSE_OUTPUT
@@ -282,7 +287,8 @@ def chat():
 
     if need_to_call_llm:
         _, messages_anthropic_format = call_llm_with_tools(
-            session['student_name_safe'], 
+            session['student_name_safe'],
+            make_system_prompt(),
             messages, 
             tools, 
             verbose_output=VERBOSE_OUTPUT
@@ -318,4 +324,4 @@ def chat():
                          llm_wants_new_question=session.get('llm_wants_new_question', False))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=8001, debug=True)

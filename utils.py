@@ -55,7 +55,7 @@ def finish_question(student_name_safe, reason):
     return ("FINISH_QUESTION: " + reason)
 
 
-def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, verbose_output=False):
+def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, max_turns=10, verbose_output=False):
     turn_i = 0
     first_turn = True
     text_to_student = ''
@@ -64,7 +64,7 @@ def call_llm_with_tools(student_name_safe, messages, tools=None, max_turns=10, v
         response = anthropic_client.messages.create(
             model=MODEL_NAME,
             max_tokens=8192,
-            #temperature=0,
+            system=system_prompt,
             tools=tools,
             messages=messages
         )
