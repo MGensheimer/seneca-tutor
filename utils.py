@@ -122,7 +122,9 @@ def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, 
                 "text": "WARNING: Maximum number of turns reached. You get one more response. Do not call any more tools."
             })
 
-        messages.append({"role": "assistant", "content": response.content})
+        if response.content != []:
+            messages.append({"role": "assistant", "content": response.content})
+
         if user_content_list:
             messages.append({
                 "role": "user",

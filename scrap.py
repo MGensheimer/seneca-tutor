@@ -33,3 +33,13 @@ for message in messages:
 for message in messages_for_serialize:
     print('\nNEXT MESSAGE\n\n')
     print(message['content'])
+
+
+import anthropic
+anthropic_client = anthropic.Anthropic()
+import pickle
+
+with open('data/test-math_chathistory_a96f4149-a941-43b7-9f71-2100856b0ea8.pkl', 'rb') as f:
+    messages = pickle.load(f)
+
+

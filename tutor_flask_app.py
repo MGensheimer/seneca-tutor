@@ -5,8 +5,8 @@ from termcolor import colored
 import anthropic
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import json
 import uuid
+import pickle
 load_dotenv()
 
 VERBOSE_OUTPUT = True
@@ -33,36 +33,24 @@ def get_student_list():
     return sorted(list(students))
 
 
-def anthropic_to_string_format(messages):
-    messages_for_serialize = []
-    for message in messages:
-        message_text = ''
-        if type(message['content'])==str: #used for standard user messages to assistant
-            message_text = message['content']
-        elif type(message['content'])==list:
-            for content_item in message['content']:
-                if type(content_item)==anthropic.types.text_block.TextBlock: #used for text from assistant to user
-                    message_text += content_item.text + '\n\n'
-                if type(content_item)==anthropic.types.tool_use_block.ToolUseBlock: # used for tool calls from assistant to user
-                    message_text += f'<tool_call>\nName: {content_item.name}\nID: {content_item.id}\nInput: {content_item.input}\n</tool_call>\n\n'
-                if type(content_item)==dict: #used for tool results from user to assistant
-                    message_text += json.dumps(content_item) + '\n\n'
-        
-        if message_text.strip():
-            messages_for_serialize.append({'role': message['role'], 'content': message_text})
-
-    return messages_for_serialize
-
-
 def extract_chat_messages(messages):
-    """Extract student and tutor text from the messages list (the text that should be displayed to the user)"""
+    """Extract student and tutor text from the messages list"""
     chat_messages = []
     for message in messages:
-        soup = BeautifulSoup(message['content'], 'html.parser')
+        if isinstance(message.get('content'), str):
+            content = message['content']
+        else:
+            content = ""
+            for item in message.get('content', []):
+                if hasattr(item, 'text'):
+                    content += item.text + '\n\n'
+            
+        soup = BeautifulSoup(content, 'html.parser')
         if message['role'] == 'assistant':
             student_messages = soup.find_all('to_student')
         elif message['role'] == 'user':
             student_messages = soup.find_all('from_student')
+            
         if student_messages:
             filtered_messages = [msg.get_text() for msg in student_messages if msg.get_text() not in ['', '\n']]
             if filtered_messages:
@@ -74,20 +62,17 @@ def extract_chat_messages(messages):
 
 
 def save_chat_history(student_name_safe, chat_uuid, messages):
-    """Save chat history to a file"""
-    filename = f'data/{student_name_safe}_chathistory_{chat_uuid}.txt'
-    with open(filename, 'w') as f:
-        json.dump(messages, f, indent=2)
+    """Save chat history to a pickle file"""
+    filename = f'data/{student_name_safe}_chathistory_{chat_uuid}.pkl'
+    with open(filename, 'wb') as f:
+        pickle.dump(messages, f)
 
 
 def load_chat_history(student_name_safe, chat_uuid):
-    """Load chat history from a file"""
-    filename = f'data/{student_name_safe}_chathistory_{chat_uuid}.txt'
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
-            return json.load(f)
-    else:
-        return []
+    """Load chat history from a pickle file"""
+    filename = f'data/{student_name_safe}_chathistory_{chat_uuid}.pkl'
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
 
 
 def make_system_prompt():
@@ -108,8 +93,8 @@ During the conversation, you should be keeping all your notes up to date using t
 Some notes/reminders:
 - Very important: Only text within <to_student> blocks will be shown to the student.
 - Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
-- If the chat history gets quite long, call the finish_question tool to start a new session.
-- I store your chat history in a JSON serializable format, so you will see your tool calls from prior turns within <tool_call> tags instead of ToolUseBlock objects. But when you make new tool calls, do them in your standard way, not using <tool_call> tags.
+- If the chat history gets quite long, call the finish_question tool to start a new session
+- Adapt your style to the age of the student. For instance, for an 8 year old student, if they got the answer right, don't ask them to explain their steps.
 """
 
 
@@ -240,7 +225,10 @@ def chat():
         print(colored(f'Continuing chat session with UUID: {session["chat_uuid"]}', 'green'))
     
     need_to_call_llm = False
-    messages = load_chat_history(session['student_name_safe'], session['chat_uuid'])
+    try:
+        messages = load_chat_history(session['student_name_safe'], session['chat_uuid'])
+    except FileNotFoundError:
+        messages = []
 
     if not messages:
         print(colored(f'No chat history found. Creating first user message.', 'yellow'))
@@ -255,16 +243,21 @@ def chat():
                     "role": "user", 
                     "content": 'The session has ended because the student or tutor wants to do a new question. Please make any last updates to your notes. This would be a good time to update the lesson plan with your plans for the next question so you are ready for the next session. You do not need to call finish_question.'
                 })
-                print(f'Going to start a new chat. Length of messages before LLM call: {len(messages)}')
-                _, messages_anthropic_format = call_llm_with_tools(
-                    session['student_name_safe'], 
-                    make_system_prompt(),
-                    messages, 
-                    tools, 
-                    verbose_output=VERBOSE_OUTPUT
-                )
-                messages = anthropic_to_string_format(messages_anthropic_format)
-                print(f'Length of messages after LLM call: {len(messages)}')
+                retries = 3
+                for attempt in range(retries):
+                    try:
+                        _, messages = call_llm_with_tools(
+                            session['student_name_safe'], 
+                            make_system_prompt(),
+                            messages, 
+                            tools, 
+                            verbose_output=VERBOSE_OUTPUT
+                        )
+                        break
+                    except Exception as e:
+                        print(colored(f'Error calling LLM (attempt {attempt + 1}): {e}', 'red'))
+                        if attempt == retries - 1:  # If it's the last attempt
+                            messages.append({"role": "assistant", "content": f"Error calling LLM: {e}. <to_student>I had a problem and couldn't respond. Please try again.</to_student>"})
 
                 # Save chat history to file
                 save_chat_history(
@@ -286,18 +279,25 @@ def chat():
             need_to_call_llm = True
 
     if need_to_call_llm:
-        _, messages_anthropic_format = call_llm_with_tools(
-            session['student_name_safe'],
-            make_system_prompt(),
-            messages, 
-            tools, 
-            verbose_output=VERBOSE_OUTPUT
-        )
-        messages = anthropic_to_string_format(messages_anthropic_format)
+        retries = 3
+        for attempt in range(retries):
+            try:
+                _, messages = call_llm_with_tools(
+                    session['student_name_safe'], 
+                    make_system_prompt(),
+                    messages, 
+                    tools, 
+                    verbose_output=VERBOSE_OUTPUT
+                )
+                break
+            except Exception as e:
+                print(colored(f'Error calling LLM (attempt {attempt + 1}): {e}', 'red'))
+                if attempt == retries - 1:  # If it's the last attempt
+                    messages.append({"role": "assistant", "content": f"Error calling LLM: {e}. <to_student>I had a problem and couldn't respond. Please try again.</to_student>"})
 
         # Check if LLM called finish_question
         llm_wants_new_question = False
-        for message in messages_anthropic_format:
+        for message in messages:
             if isinstance(message.get('content'), list):
                 for content_item in message['content']:
                     if isinstance(content_item, anthropic.types.tool_use_block.ToolUseBlock):

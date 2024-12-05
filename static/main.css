@@ -861,6 +861,10 @@ video {
   background-color: rgb(17 24 39 / 0.5);
 }
 
+.bg-gray-900\/30 {
+  background-color: rgb(17 24 39 / 0.3);
+}
+
 .p-2 {
   padding: 0.5rem;
 }
