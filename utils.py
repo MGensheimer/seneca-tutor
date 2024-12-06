@@ -138,3 +138,19 @@ def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, 
 
     return text_to_student, messages
 
+
+def format_html_w_tailwind(html_text):
+    """Format HTML text to be more readable by adding Tailwind CSS classes"""
+    html_text = html_text.replace('<ul>', '<ul class="list-disc ml-4">')
+    html_text = html_text.replace('<a ', '<a target="_blank" class="text-indigo-600 hover:underline" ')
+    html_text = html_text.replace('<p>', '<p class="mt-2">')
+    html_text = html_text.replace('<h1>', '<h1 class="text-2xl font-bold mt-4">')
+    html_text = html_text.replace('<h2>', '<h2 class="text-xl font-bold mt-4">')
+    html_text = html_text.replace('<h3>', '<h3 class="text-lg font-bold mt-4">')
+    html_text = html_text.replace('<h4>', '<h4 class="text-base font-bold mt-4">')
+    html_text = html_text.replace('<strong>', '<strong class="font-bold">')
+    html_text = html_text.replace('<em>', '<em class="italic">')
+    html_text = html_text.replace('<blockquote>', '<blockquote class="border-l-4 border-gray-300 pl-4 italic">')
+    html_text = html_text.replace('<code>', '<code class="bg-gray-200 p-1 rounded">')
+    html_text = html_text.replace('<pre>', '<pre class="bg-gray-200 p-2 rounded overflow-x-auto">')    
+    return html_text

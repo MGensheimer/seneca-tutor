@@ -20,10 +20,19 @@
                     <ul class="space-y-2">
                     {% for student in students %}
                         <li>
-                            <a href="{{ url_for('select_student', student_name_safe=student) }}" 
-                               class="block p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 hover:border-gray-300">
-                                {{ student }}
-                            </a>
+                            <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 hover:border-gray-300">
+                                <a href="{{ url_for('select_student', student_name_safe=student) }}" 
+                                   class="flex-grow">
+                                    {{ student }}
+                                </a>
+                                <a href="{{ url_for('delete_student', student_name=student) }}" 
+                                   class="ml-4 p-2 hover:bg-red-100 rounded-full transition-colors"
+                                   onclick="return confirm('Are you sure you want to delete this student and all their data?');">
+                                    <img src="{{ url_for('static', filename='images/trash.svg') }}" 
+                                         alt="Delete student" 
+                                         class="w-5 h-5">
+                                </a>
+                            </div>
                         </li>
                     {% endfor %}
                     </ul>

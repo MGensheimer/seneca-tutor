@@ -53,7 +53,7 @@
                                     </button>
                                 </div>
                                 <div class="prose speak-content">
-                                    {{ message.content }}
+                                    {{ message.content|safe }}
                                 </div>
                             </div>
                         {% endfor %}

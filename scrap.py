@@ -38,8 +38,31 @@ for message in messages_for_serialize:
 import anthropic
 anthropic_client = anthropic.Anthropic()
 import pickle
+import nh3
+from utils import format_html_w_tailwind
 
 with open('data/test-math_chathistory_a96f4149-a941-43b7-9f71-2100856b0ea8.pkl', 'rb') as f:
     messages = pickle.load(f)
 
 
+item = messages[9]['content'][0].text
+tags = set(nh3.ALLOWED_TAGS) | {"svg", "line", "text", "rect", "path", "polygon", "polyline", "ellipse", "circle", "g", "defs", "use", "clipPath", "linearGradient", "stop", "image"}
+from copy import deepcopy
+attributes = deepcopy(nh3.ALLOWED_ATTRIBUTES)
+attributes_to_add = {
+    'svg': ['width', 'height', 'viewBox', 'xmlns', 'fill', 'stroke'],
+    'path': ['d', 'fill', 'stroke', 'stroke-width'],
+    'circle': ['cx', 'cy', 'r', 'fill', 'stroke'],
+    'line': ['x1', 'y1', 'x2', 'y2', 'stroke', 'stroke-width', 'marker-end', 'marker-start'],
+    'text': ['x', 'y', 'font-size', 'fill', 'font-weight'],
+    'rect': ['x', 'y', 'width', 'height', 'fill', 'stroke', 'stroke-width'],
+    'marker': ['id', 'markerWidth', 'markerHeight', 'refX', 'refY', 'orient'],
+    'polygon': ['points', 'fill'],
+}
+for tag, attrs in attributes_to_add.items():
+    if tag not in attributes:
+        attributes[tag] = set()
+    for attr in attrs:
+        attributes[tag].add(attr)
+
+print(nh3.clean(format_html_w_tailwind(item), tags=tags, attributes=attributes))

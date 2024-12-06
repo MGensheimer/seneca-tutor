@@ -1,12 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import os
-from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp, count_tokens
+from utils import get_notes, edit_notes, call_llm_with_tools, get_timestamp, count_tokens, format_html_w_tailwind
 from termcolor import colored
 import anthropic
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import uuid
 import pickle
+import nh3
+from copy import deepcopy
+
 load_dotenv()
 
 VERBOSE_OUTPUT = True
@@ -33,6 +36,28 @@ def get_student_list():
     return sorted(list(students))
 
 
+def sanitize_html(html_text):
+    tags = set(nh3.ALLOWED_TAGS) | {"svg", "line", "text", "rect", "path", "polygon", "polyline", "ellipse", "circle", "g", "defs", "use", "clipPath", "linearGradient", "stop", "image"}
+    attributes = deepcopy(nh3.ALLOWED_ATTRIBUTES)
+    attributes_to_add = {
+        'svg': ['width', 'height', 'viewBox', 'xmlns', 'fill', 'stroke'],
+        'path': ['d', 'fill', 'stroke', 'stroke-width'],
+        'circle': ['cx', 'cy', 'r', 'fill', 'stroke'],
+        'line': ['x1', 'y1', 'x2', 'y2', 'stroke', 'stroke-width', 'marker-end', 'marker-start'],
+        'text': ['x', 'y', 'font-size', 'fill', 'font-weight'],
+        'rect': ['x', 'y', 'width', 'height', 'fill', 'stroke', 'stroke-width'],
+        'marker': ['id', 'markerWidth', 'markerHeight', 'refX', 'refY', 'orient'],
+        'polygon': ['points', 'fill'],
+    }
+    for tag, attrs in attributes_to_add.items():
+        if tag not in attributes:
+            attributes[tag] = set()
+        for attr in attrs:
+            attributes[tag].add(attr)
+
+    return nh3.clean(html_text, tags=tags, attributes=attributes)
+
+
 def extract_chat_messages(messages):
     """Extract student and tutor text from the messages list"""
     chat_messages = []
@@ -46,18 +71,19 @@ def extract_chat_messages(messages):
                     content += item.text + '\n\n'
             
         soup = BeautifulSoup(content, 'html.parser')
-        if message['role'] == 'assistant':
+        filtered_messages = None
+        if message['role'] == 'assistant': #HTML formatted text
             student_messages = soup.find_all('to_student')
-        elif message['role'] == 'user':
+            filtered_messages = [sanitize_html(format_html_w_tailwind(str(msg))) for msg in student_messages if str(msg) not in ['', '\n']]
+        elif message['role'] == 'user': #plain text
             student_messages = soup.find_all('from_student')
+            filtered_messages = [str(msg).replace('\n', '<br>') for msg in student_messages if str(msg) not in ['', '\n']]
             
-        if student_messages:
-            filtered_messages = [msg.get_text() for msg in student_messages if msg.get_text() not in ['', '\n']]
-            if filtered_messages:
-                chat_messages.append({
-                    'role': message['role'],
-                    'content': '\n'.join(filtered_messages)
-                })
+        if filtered_messages:
+            chat_messages.append({
+                'role': message['role'],
+                'content': '\n'.join(filtered_messages)
+            })
     return chat_messages
 
 
@@ -80,7 +106,7 @@ def make_system_prompt():
 When creating a new problem or challenge, the steps will be:
 1. Write out the problem, what topic it falls under, the difficulty/grade level, and how challenging you expect it to be for the specific student you are tutoring. Use <problem></problem> tags.
 2. Write down the steps needed to solve the problem, and an acceptable answer. Use <solution></solution> tags.
-3. Give the problem to the student. Wrap any text that will be sent to the student in <to_student></to_student> tags.
+3. Give the problem to the student. Wrap any text that will be sent to the student in <to_student></to_student> tags. Format this text with HTML, and you can also include small SVG diagrams as needed.
 
 The student's responses will be wrapped in <from_student></from_student> tags. After the student responds, if they are correct, then congratulate them, make any relevant comments on the strategy they used to, and move on to the next problem. If they are wrong, then engage with them as a tutor would, to try to understand why they are getting it wrong. This could include asking them to tell you the steps they used to solve the problem, giving them small hints to try to nudge them in the right direction, or teaching them about needed concepts.
 If the student still cannot get to the right answer after several turns back and forth and you think it's time to move to the next problem, make a note in the skills note using tool calling, then move to the next problem and notify the student.
@@ -91,7 +117,7 @@ During the conversation, you should be keeping all your notes up to date using t
 - past_problems: Use this to store problems that the student could not get right even after several tries, so that you can come back to them later once the student has progressed in their skills and is ready to try again.
 
 Some notes/reminders:
-- Very important: Only text within <to_student> blocks will be shown to the student.
+- Very important: Only text within <to_student> blocks will be shown to the student; use HTML formatting for this text.
 - Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
 - If the chat history gets quite long, call the finish_question tool to start a new session
 - Adapt your style to the age of the student. For instance, for an 8 year old student, if they got the answer right, don't ask them to explain their steps.
@@ -322,6 +348,21 @@ def chat():
                          chat_messages=chat_messages,
                          student_name_safe=session.get('student_name_safe'),
                          llm_wants_new_question=session.get('llm_wants_new_question', False))
+
+
+@app.route('/delete_student/<student_name>')
+def delete_student(student_name):
+    student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_').lower()
+    
+    # Delete all files associated with the student
+    if os.path.exists('data'):
+        files = os.listdir('data')
+        for file in files:
+            if file.startswith(student_name_safe):
+                os.remove(os.path.join('data', file))
+    
+    return redirect(url_for('index'))
+
 
 if __name__ == '__main__':
     app.run(port=8001, debug=True)
