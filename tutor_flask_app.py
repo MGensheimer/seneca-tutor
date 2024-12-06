@@ -347,7 +347,8 @@ def chat():
     return render_template('chat.html', 
                          chat_messages=chat_messages,
                          student_name_safe=session.get('student_name_safe'),
-                         llm_wants_new_question=session.get('llm_wants_new_question', False))
+                         llm_wants_new_question=session.get('llm_wants_new_question', False),
+                         lesson_plan=get_notes(session['student_name_safe'], 'lesson_plan'))
 
 
 @app.route('/delete_student/<student_name>')

@@ -3,8 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Tutor: Chat with {{ student_name_safe }}</title>
+    <title>Tutoring Session with {{ student_name_safe }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <script>
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            // Show selected tab content
+            document.getElementById(tabName + 'Content').classList.remove('hidden');
+            // Update tab styles
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('bg-white', 'border-blue-800');
+                tab.classList.add('bg-gray-100', 'border-transparent');
+            });
+            document.getElementById(tabName + 'Tab').classList.remove('bg-gray-100', 'border-transparent');
+            document.getElementById(tabName + 'Tab').classList.add('bg-white', 'border-blue-800');
+        }
+    </script>
 </head>
 <body class="bg-gray-100">
     <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-900/30 z-50 flex items-center justify-center">
@@ -18,7 +35,7 @@
         <header class="bg-white shadow-sm p-4 flex-none">
             <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center mb-4 md:mb-0">
-                    <h1 class="text-xl font-bold">Tutor's Chat with {{ student_name_safe }}</h1>
+                    <h1 class="text-xl font-bold">Tutoring Session with {{ student_name_safe }}</h1>
                 </div>
                 <div class="flex items-center space-x-4">
                     <form method="POST" class="flex items-center" id="newChatForm">
@@ -36,14 +53,30 @@
             </div>
         </header>
 
+        <!-- Tab Navigation -->
+        <div class="bg-gradient-to-r from-cyan-50 to-fuchsia-50 px-4 border-b">
+            <div class="flex">
+                <button id="chatTab" 
+                        class="tab px-6 py-3 font-medium border-b-2 bg-white border-blue-800"
+                        onclick="switchTab('chat')">
+                    Chat
+                </button>
+                <button id="lessonPlanTab" 
+                        class="tab px-6 py-3 font-medium border-b-2 bg-gray-100 border-transparent"
+                        onclick="switchTab('lessonPlan')">
+                    Lesson Plan
+                </button>
+            </div>
+        </div>
+
         <!-- Main content wrapper -->
         <div class="flex-1 overflow-hidden relative">
-            <!-- Chat Messages -->
-            <div class="absolute inset-0 overflow-y-auto">
+            <!-- Chat Tab Content -->
+            <div id="chatContent" class="tab-content absolute inset-0 overflow-y-auto">
                 <div class="p-4">
                     <div class="container mx-auto max-w-3xl space-y-4">
                         {% for message in chat_messages %}
-                            <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-blue-500{% else %}border-l-4 border-green-500{% endif %}">
+                            <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-cyan-300{% else %}border-l-4 border-fuchsia-300{% endif %}">
                                 <div class="flex justify-between items-center text-sm text-gray-500 mb-1">
                                     <span>{{ message.role|title }}</span>
                                     <button class="speak-button p-1 hover:bg-gray-100 rounded-full" aria-label="Read message aloud">
@@ -57,6 +90,17 @@
                                 </div>
                             </div>
                         {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lesson Plan Tab Content -->
+            <div id="lessonPlanContent" class="tab-content absolute inset-0 overflow-y-auto hidden">
+                <div class="p-4">
+                    <div class="container mx-auto max-w-3xl">
+                        <div class="bg-white rounded-lg shadow-sm p-4">
+                            <pre class="whitespace-pre-wrap">{{ lesson_plan }}</pre>
+                        </div>
                     </div>
                 </div>
             </div>
