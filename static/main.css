@@ -938,6 +938,19 @@ video {
   background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
 }
 
+.bg-gray-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 250 251 / var(--tw-bg-opacity, 1));
+}
+
+.bg-gray-50\/50 {
+  background-color: rgb(249 250 251 / 0.5);
+}
+
+.bg-gray-50\/25 {
+  background-color: rgb(249 250 251 / 0.25);
+}
+
 .bg-gradient-to-r {
   background-image: linear-gradient(to right, var(--tw-gradient-stops));
 }
@@ -960,6 +973,36 @@ video {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.from-cyan-50\/25 {
+  --tw-gradient-from: rgb(236 254 255 / 0.25) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(236 254 255 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.from-teal-50\/50 {
+  --tw-gradient-from: rgb(240 253 250 / 0.5) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(240 253 250 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.from-gray-100 {
+  --tw-gradient-from: #f3f4f6 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(243 244 246 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.from-gray-50 {
+  --tw-gradient-from: #f9fafb var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(249 250 251 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.from-white {
+  --tw-gradient-from: #fff var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .to-gray-50 {
   --tw-gradient-to: #f9fafb var(--tw-gradient-to-position);
 }
@@ -970,6 +1013,22 @@ video {
 
 .to-fuchsia-50\/50 {
   --tw-gradient-to: rgb(253 244 255 / 0.5) var(--tw-gradient-to-position);
+}
+
+.to-fuchsia-50\/25 {
+  --tw-gradient-to: rgb(253 244 255 / 0.25) var(--tw-gradient-to-position);
+}
+
+.to-cyan-50\/25 {
+  --tw-gradient-to: rgb(236 254 255 / 0.25) var(--tw-gradient-to-position);
+}
+
+.to-teal-50\/25 {
+  --tw-gradient-to: rgb(240 253 250 / 0.25) var(--tw-gradient-to-position);
+}
+
+.to-gray-100 {
+  --tw-gradient-to: #f3f4f6 var(--tw-gradient-to-position);
 }
 
 .p-2 {

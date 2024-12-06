@@ -46,7 +46,7 @@ The following packages are required:
 2. Start the Flask development server:
 
 ```bash
-python tutor_flask_app.py
+python tutor.py
 ```
 
 The application will be available at `http://localhost:8001`

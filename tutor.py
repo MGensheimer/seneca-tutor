@@ -9,6 +9,7 @@ import uuid
 import pickle
 import nh3
 from copy import deepcopy
+import hashlib
 
 load_dotenv()
 
@@ -141,6 +142,12 @@ Let's get started! If there is no lesson plan, then draft one and tell the stude
 If your notes indicate the student has done prior work with you, the chat session is continuing from where they left off, so don't refer to it as the first problem.
 """
     return first_user_message
+
+
+def get_lesson_plan_hash(student_name_safe):
+    """Calculate hash of lesson plan content"""
+    lesson_plan = get_notes(student_name_safe, 'lesson_plan')
+    return hashlib.md5(lesson_plan.encode()).hexdigest()
 
 
 @app.route('/')
@@ -342,13 +349,24 @@ def chat():
             messages
         )
     
+    # Check if lesson plan has changed so we can display this in chat.html
+    current_hash = get_lesson_plan_hash(session['student_name_safe'])
+    lesson_plan_is_new = False
+    
+    if 'lesson_plan_hash' not in session:
+        session['lesson_plan_hash'] = current_hash
+    elif session['lesson_plan_hash'] != current_hash:
+        lesson_plan_is_new = True
+        session['lesson_plan_hash'] = current_hash
+
     #extract only the text that should be visible to the student
     chat_messages = extract_chat_messages(messages)
     return render_template('chat.html', 
                          chat_messages=chat_messages,
                          student_name_safe=session.get('student_name_safe'),
                          llm_wants_new_question=session.get('llm_wants_new_question', False),
-                         lesson_plan=get_notes(session['student_name_safe'], 'lesson_plan'))
+                         lesson_plan=get_notes(session['student_name_safe'], 'lesson_plan'),
+                         lesson_plan_is_new=lesson_plan_is_new)
 
 
 @app.route('/delete_student/<student_name>')

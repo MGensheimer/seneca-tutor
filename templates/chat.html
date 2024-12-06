@@ -54,7 +54,7 @@
         </header>
 
         <!-- Tab Navigation -->
-        <div class="bg-gradient-to-r from-cyan-50 to-fuchsia-50 px-4 border-b">
+        <div class="bg-gradient-to-r from-white to-gray-100 px-4 border-b">
             <div class="flex">
                 <button id="chatTab" 
                         class="tab px-6 py-3 font-medium border-b-2 bg-white border-blue-800"
@@ -64,7 +64,7 @@
                 <button id="lessonPlanTab" 
                         class="tab px-6 py-3 font-medium border-b-2 bg-gray-100 border-transparent"
                         onclick="switchTab('lessonPlan')">
-                    Lesson Plan
+                    Lesson Plan {{'(updated)' if lesson_plan_is_new else ''}}
                 </button>
             </div>
         </div>
