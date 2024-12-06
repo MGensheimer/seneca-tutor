@@ -158,7 +158,7 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
             {% if llm_wants_new_question %}
-            if (confirm("The tutor would like to move to a new question. Click OK to proceed.")) {
+            if (confirm("The tutor would like to move to a new question (due to being done with this one, or the conversation getting too long.). Click OK to proceed.")) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 const input = document.createElement('input');

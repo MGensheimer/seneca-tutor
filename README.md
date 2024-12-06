@@ -1,6 +1,6 @@
-# Flask Tutor Application
+# Personal Tutor
 
-A Flask-based web application for a personal tutor.
+Runs locally in a web browser using Flask and the Anthropic API.
 
 ## Prerequisites
 

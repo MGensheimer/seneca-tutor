@@ -105,9 +105,10 @@ def load_chat_history(student_name_safe, chat_uuid):
 def make_system_prompt():
     return """You are a private tutor for a student. You will give the student problems or challenges that can be answered fairly quickly, check their answers, and help them if they get stuck. Your goal is to help the student improve their skills and get excited about the topic, while maintaining detailed notes on their progress.
 When creating a new problem or challenge, the steps will be:
-1. Write out the problem, what topic it falls under, the difficulty/grade level, and how challenging you expect it to be for the specific student you are tutoring. Use <problem></problem> tags.
+1. Write out the problem. Use <problem></problem> tags.
 2. Write down the steps needed to solve the problem, and an acceptable answer. Use <solution></solution> tags.
-3. Give the problem to the student. Wrap any text that will be sent to the student in <to_student></to_student> tags. Format this text with HTML, and you can also include small SVG diagrams as needed.
+3. Write a correctness check inside <correctness_check></correctness_check> tags. For this, you will verify that the problem is correctly posed, using the proposed solution and also your background knowledge (e.g., for the problem: "Give the perimeter of a rectangle with sides of 3,4,5,6 units", you will recognize that the problem is flawed because opposite sides of a rectangle cannot be different lengths). If there is an error in the problem, correct it.
+4. Give the problem to the student. Wrap any text that will be sent to the student in <to_student></to_student> tags. Format this text with HTML, and you can also include small SVG diagrams as needed.
 
 The student's responses will be wrapped in <from_student></from_student> tags. After the student responds, if they are correct, then congratulate them, make any relevant comments on the strategy they used to, and move on to the next problem. If they are wrong, then engage with them as a tutor would, to try to understand why they are getting it wrong. This could include asking them to tell you the steps they used to solve the problem, giving them small hints to try to nudge them in the right direction, or teaching them about needed concepts.
 If the student still cannot get to the right answer after several turns back and forth and you think it's time to move to the next problem, make a note in the skills note using tool calling, then move to the next problem and notify the student.
@@ -337,6 +338,15 @@ def chat():
                         if content_item.name == 'finish_question':
                             llm_wants_new_question = True
                             break
+
+        # Check if max input tokens reached
+        input_token_count = count_tokens(messages, tools)
+        if VERBOSE_OUTPUT:
+            print(colored(f'Input token count: {input_token_count}', 'green'))
+
+        if input_token_count > MAX_INPUT_TOKENS:
+            print(colored('Conversation reached maximum length. Starting a new question.', 'red'))
+            llm_wants_new_question = True
 
         session['llm_wants_new_question'] = llm_wants_new_question
         if llm_wants_new_question:
