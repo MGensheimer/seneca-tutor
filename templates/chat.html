@@ -15,11 +15,11 @@
             document.getElementById(tabName + 'Content').classList.remove('hidden');
             // Update tab styles
             document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('bg-white', 'border-blue-800');
-                tab.classList.add('bg-gray-100', 'border-transparent');
+                tab.classList.remove('bg-gray-100', 'border-blue-800');
+                tab.classList.add('bg-gray-200', 'border-transparent');
             });
-            document.getElementById(tabName + 'Tab').classList.remove('bg-gray-100', 'border-transparent');
-            document.getElementById(tabName + 'Tab').classList.add('bg-white', 'border-blue-800');
+            document.getElementById(tabName + 'Tab').classList.remove('bg-gray-200', 'border-transparent');
+            document.getElementById(tabName + 'Tab').classList.add('bg-gray-100', 'border-blue-800');
         }
     </script>
 </head>
@@ -54,17 +54,22 @@
         </header>
 
         <!-- Tab Navigation -->
-        <div class="bg-gradient-to-r from-white to-gray-100 px-4 border-b">
-            <div class="flex">
+        <div class="bg-gray-100 px-4">
+            <div class="flex space-x-1">
                 <button id="chatTab" 
-                        class="tab px-6 py-3 font-medium border-b-2 bg-white border-blue-800"
+                        class="tab px-6 py-3 font-medium border-t-2 border-x-2 rounded-t-lg bg-gray-100 border-blue-800 relative"
                         onclick="switchTab('chat')">
                     Chat
                 </button>
                 <button id="lessonPlanTab" 
-                        class="tab px-6 py-3 font-medium border-b-2 bg-gray-100 border-transparent"
+                        class="tab px-6 py-3 font-medium border-t-2 border-x-2 rounded-t-lg bg-gray-200 border-transparent hover:bg-gray-100"
                         onclick="switchTab('lessonPlan')">
                     Lesson Plan {{'(updated)' if lesson_plan_is_new else ''}}
+                </button>
+                <button id="pastChatsTab" 
+                        class="tab px-6 py-3 font-medium border-t-2 border-x-2 rounded-t-lg bg-gray-200 border-transparent hover:bg-gray-100"
+                        onclick="switchTab('pastChats')">
+                    Prior Chats
                 </button>
             </div>
         </div>
@@ -76,7 +81,7 @@
                 <div class="p-4">
                     <div class="container mx-auto max-w-3xl space-y-4">
                         {% for message in chat_messages %}
-                            <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-cyan-300{% else %}border-l-4 border-fuchsia-300{% endif %}">
+                            <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-blue-500{% else %}border-l-4 border-fuchsia-500{% endif %}">
                                 <div class="flex justify-between items-center text-sm text-gray-500 mb-1">
                                     <span>{{ message.role|title }}</span>
                                     <button class="speak-button p-1 hover:bg-gray-100 rounded-full" aria-label="Read message aloud">
@@ -101,6 +106,29 @@
                         <div class="bg-white rounded-lg shadow-sm p-4">
                             <pre class="whitespace-pre-wrap">{{ lesson_plan }}</pre>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Past Chats Tab Content -->
+            <div id="pastChatsContent" class="tab-content absolute inset-0 overflow-y-auto hidden">
+                <div class="p-4">
+                    <div class="container mx-auto max-w-3xl space-y-4">
+                        {% for message in prior_chat_messages %}
+                            <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-blue-500{% else %}border-l-4 border-fuchsia-500{% endif %}">
+                                <div class="flex justify-between items-center text-sm text-gray-500 mb-1">
+                                    <span>{{ message.role|title }}</span>
+                                    <button class="speak-button p-1 hover:bg-gray-100 rounded-full" aria-label="Read message aloud">
+                                        <img src="{{ url_for('static', filename='images/speaker-wave.svg') }}" 
+                                             alt="Speaker icon" 
+                                             class="w-5 h-5">
+                                    </button>
+                                </div>
+                                <div class="prose speak-content">
+                                    {{ message.content|safe }}
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>

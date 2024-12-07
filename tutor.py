@@ -400,12 +400,44 @@ def chat():
 
     #extract only the text that should be visible to the student for displaying in chat.html
     chat_messages = extract_chat_messages(messages)
+
+    # Get prior chat messages for displaying in chat.html
+    prior_chat_messages = []
+    if os.path.exists('data'):
+        current_chat_id = int(session['chat_id'])
+        files = [f for f in os.listdir('data') 
+                if f.startswith(f"{session['student_name_safe']}_chathistory_") 
+                and f.endswith('.pkl')]
+        
+        # Extract chat IDs and sort them
+        chat_histories = []
+        for file in files:
+            try:
+                chat_id = int(file.split('_chathistory_')[1].split('.pkl')[0])
+                if chat_id < current_chat_id:
+                    chat_histories.append((chat_id, file))
+            except (IndexError, ValueError):
+                continue
+        
+        chat_histories.sort()
+        
+        # Load and process each chat history
+        for _, filename in chat_histories:
+            try:
+                prior_messages = load_chat_history(session['student_name_safe'], 
+                                                 filename.split('_chathistory_')[1].split('.pkl')[0])
+                prior_chat_messages.extend(extract_chat_messages(prior_messages))
+            except (FileNotFoundError, pickle.UnpicklingError) as e:
+                print(colored(f'Error loading prior chat history {filename}: {e}', 'red'))
+                continue
+
     return render_template('chat.html', 
                          chat_messages=chat_messages,
                          student_name_safe=session.get('student_name_safe'),
                          llm_wants_new_question=session.get('llm_wants_new_question', False),
                          lesson_plan=get_notes(session['student_name_safe'], 'lesson_plan'),
-                         lesson_plan_is_new=lesson_plan_is_new)
+                         lesson_plan_is_new=lesson_plan_is_new,
+                         prior_chat_messages=prior_chat_messages)
 
 
 @app.route('/delete_student/<student_name>')
