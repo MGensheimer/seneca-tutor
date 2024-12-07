@@ -5,7 +5,6 @@ from termcolor import colored
 import anthropic
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import uuid
 import pickle
 import nh3
 from copy import deepcopy
@@ -88,16 +87,16 @@ def extract_chat_messages(messages):
     return chat_messages
 
 
-def save_chat_history(student_name_safe, chat_uuid, messages):
+def save_chat_history(student_name_safe, chat_id, messages):
     """Save chat history to a pickle file"""
-    filename = f'data/{student_name_safe}_chathistory_{chat_uuid}.pkl'
+    filename = f'data/{student_name_safe}_chathistory_{chat_id}.pkl'
     with open(filename, 'wb') as f:
         pickle.dump(messages, f)
 
 
-def load_chat_history(student_name_safe, chat_uuid):
+def load_chat_history(student_name_safe, chat_id):
     """Load chat history from a pickle file"""
-    filename = f'data/{student_name_safe}_chathistory_{chat_uuid}.pkl'
+    filename = f'data/{student_name_safe}_chathistory_{chat_id}.pkl'
     with open(filename, 'rb') as f:
         return pickle.load(f)
 
@@ -123,6 +122,7 @@ Some notes/reminders:
 - Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
 - If the chat history gets quite long, call the finish_question tool to start a new session
 - Adapt your style to the age of the student. For instance, for an 8 year old student, if they got the answer right, don't ask them to explain their steps.
+- Only ask the student to do things they can type (no drawing, etc.).
 """
 
 
@@ -151,6 +151,29 @@ def get_lesson_plan_hash(student_name_safe):
     return hashlib.md5(lesson_plan.encode()).hexdigest()
 
 
+def get_latest_chat_id(student_name_safe):
+    """Get the most recent chat ID for a student (the one with the highest number)"""
+    if not os.path.exists('data'):
+        return '000001'
+    
+    files = [f for f in os.listdir('data') if f.startswith(f'{student_name_safe}_chathistory_')]
+    if not files:
+        return '000001'
+        
+    chat_ids = []
+    for file in files:
+        try:
+            chat_id = file.split('_chathistory_')[1].split('.pkl')[0]
+            chat_ids.append(int(chat_id))
+        except (IndexError, ValueError):
+            continue
+    
+    if not chat_ids:
+        return '000001'
+        
+    return f'{max(chat_ids):06d}'  # Format as 6-digit string with leading zeros
+
+
 @app.route('/')
 def index():
     students = get_student_list()
@@ -166,7 +189,6 @@ def new_student():
         
         student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_').lower()
         
-        # Create data directory if it doesn't exist
         if not os.path.exists('data'):
             os.makedirs('data')
             
@@ -182,6 +204,7 @@ def new_student():
                 f.write(content)
         
         session['student_name_safe'] = student_name_safe
+        session['chat_id'] = '000001'  # First chat session for new student
         return redirect(url_for('chat'))
         
     return render_template('new_student.html')
@@ -190,6 +213,12 @@ def new_student():
 @app.route('/select_student/<student_name_safe>')
 def select_student(student_name_safe):
     session['student_name_safe'] = student_name_safe
+    session['chat_id'] = get_latest_chat_id(student_name_safe)
+
+    # Since student may have changed, reset lesson plan hash
+    current_hash = get_lesson_plan_hash(student_name_safe)
+    session['lesson_plan_hash'] = current_hash
+
     return redirect(url_for('chat'))
 
 
@@ -250,22 +279,22 @@ def chat():
         },
     ]
 
-    session['llm_wants_new_question'] = False #If LLM wants a new question, we already used this in the call to the chat template so can reset it here
+    session['llm_wants_new_question'] = False
 
-    if 'chat_uuid' not in session:
-        session['chat_uuid'] = str(uuid.uuid4())
-        print(colored(f'New chat session started. Assigning UUID: {session["chat_uuid"]}', 'green'))
+    if 'chat_id' not in session:
+        session['chat_id'] = get_latest_chat_id(session['student_name_safe'])
+        print(colored(f'There was no chat ID in the session, so we assigned the latest ID for this student: {session["chat_id"]}', 'green'))
     else:
-        print(colored(f'Continuing chat session with UUID: {session["chat_uuid"]}', 'green'))
+        print(colored(f'Chat session ID: {session["chat_id"]}', 'green'))
     
     need_to_call_llm = False
     try:
-        messages = load_chat_history(session['student_name_safe'], session['chat_uuid'])
+        messages = load_chat_history(session['student_name_safe'], session['chat_id'])
     except FileNotFoundError:
         messages = []
 
     if not messages:
-        print(colored(f'No chat history found. Creating first user message.', 'yellow'))
+        print(colored(f'No chat history found for this student and chat ID. Creating first user message.', 'yellow'))
         messages = [{"role": "user", "content": make_first_user_message(session['student_name_safe'])}]
         need_to_call_llm = True
 
@@ -280,7 +309,7 @@ def chat():
                 retries = 3
                 for attempt in range(retries):
                     try:
-                        _, messages = call_llm_with_tools(
+                        messages = call_llm_with_tools(
                             session['student_name_safe'], 
                             make_system_prompt(),
                             messages, 
@@ -296,13 +325,13 @@ def chat():
                 # Save chat history to file
                 save_chat_history(
                     session['student_name_safe'],
-                    session['chat_uuid'],
+                    session['chat_id'],
                     messages
                 )
 
             # Start new chat session
-            session['chat_uuid'] = str(uuid.uuid4())
-            print(colored(f'New chat session started. Assigning UUID: {session["chat_uuid"]}', 'green'))
+            session['chat_id'] = f'{int(get_latest_chat_id(session["student_name_safe"])) + 1:06d}'
+            print(colored(f'New chat session started. Assigning ID: {session["chat_id"]}', 'green'))
             messages = [{"role": "user", "content": make_first_user_message(session['student_name_safe'])}]
             need_to_call_llm = True
             
@@ -313,10 +342,14 @@ def chat():
             need_to_call_llm = True
 
     if need_to_call_llm:
+        input_token_count = count_tokens(messages, tools)
+        if VERBOSE_OUTPUT:
+            print(colored(f'Input token count: {input_token_count}', 'green'))
+
         retries = 3
         for attempt in range(retries):
             try:
-                _, messages = call_llm_with_tools(
+                messages = call_llm_with_tools(
                     session['student_name_safe'], 
                     make_system_prompt(),
                     messages, 
@@ -340,10 +373,6 @@ def chat():
                             break
 
         # Check if max input tokens reached
-        input_token_count = count_tokens(messages, tools)
-        if VERBOSE_OUTPUT:
-            print(colored(f'Input token count: {input_token_count}', 'green'))
-
         if input_token_count > MAX_INPUT_TOKENS:
             print(colored('Conversation reached maximum length. Starting a new question.', 'red'))
             llm_wants_new_question = True
@@ -355,11 +384,11 @@ def chat():
         # Save chat history to file
         save_chat_history(
             session['student_name_safe'],
-            session['chat_uuid'],
+            session['chat_id'],
             messages
         )
     
-    # Check if lesson plan has changed so we can display this in chat.html
+    # Check if lesson plan has changed so we can show an indicator in chat.html
     current_hash = get_lesson_plan_hash(session['student_name_safe'])
     lesson_plan_is_new = False
     
@@ -369,7 +398,7 @@ def chat():
         lesson_plan_is_new = True
         session['lesson_plan_hash'] = current_hash
 
-    #extract only the text that should be visible to the student
+    #extract only the text that should be visible to the student for displaying in chat.html
     chat_messages = extract_chat_messages(messages)
     return render_template('chat.html', 
                          chat_messages=chat_messages,

@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
 <body class="bg-gray-100 min-h-screen">
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-900/30 z-50 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-lg p-6 flex items-center space-x-3">
+            <img src="{{ url_for('static', filename='images/circles.svg') }}" alt="Loading..." class="w-8 h-8">
+            <span class="text-white font-medium">Creating lesson plan...</span>
+        </div>
+    </div>
     <div class="container mx-auto px-4 py-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Create a New Student</h1>
@@ -14,10 +20,10 @@
         
         <main>
             <div class="bg-white rounded-lg shadow-md p-6">
-                <form method="POST" class="space-y-6">
+                <form method="POST" class="space-y-6" id="newStudentForm">
                     <div>
                         <label for="student_name" class="block text-sm font-medium text-gray-700">
-                            Student identifier (such as michael-javascript, estelle_math, etc.). Avoid using spaces.
+                            Student identifier (such as michael-javascript, estelle_math, etc.). No spaces.
                         </label>
                         <input type="text" 
                                name="student_name" 
@@ -52,5 +58,13 @@
             </div>
         </main>
     </div>
+
+    <script>
+        const newStudentForm = document.getElementById('newStudentForm');
+        
+        newStudentForm.addEventListener('submit', function(e) {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        });
+    </script>
 </body>
 </html>

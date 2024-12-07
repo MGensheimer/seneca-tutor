@@ -58,7 +58,6 @@ def finish_question(student_name_safe, reason):
 def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, max_turns=10, verbose_output=False):
     turn_i = 0
     first_turn = True
-    text_to_student = ''
     while first_turn or response.stop_reason == "tool_use":
         first_turn = False
         response = anthropic_client.messages.create(
@@ -72,7 +71,7 @@ def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, 
         if turn_i >= max_turns:
             if verbose_output:
                 print(colored(f'Max turns reached ({max_turns})', 'red'))
-            return text_to_student, messages
+            return messages
             #raise ValueError(f'Max turns reached ({max_turns})')
 
         user_content_list = []
@@ -110,12 +109,6 @@ def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, 
                 "content": str(tool_result),
             })
 
-        for block in response.content:
-            if hasattr(block, 'text'):
-                soup = BeautifulSoup(block.text, 'html.parser')
-                student_messages = soup.find_all('to_student')
-                text_to_student += ' '.join(msg.get_text() for msg in student_messages)
-
         if turn_i == max_turns-1:
             user_content_list.append({
                 "type": "text",
@@ -136,7 +129,7 @@ def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, 
 
         turn_i += 1
 
-    return text_to_student, messages
+    return messages
 
 
 def format_html_w_tailwind(html_text):

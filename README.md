@@ -2,6 +2,11 @@
 
 Runs locally in a web browser using Flask and the Anthropic API.
 
+## Features
+
+- Uses Claude 3.5 Sonnet model
+- The AI continuously updates the lesson plan based on progress and how the student is doing, and remembers it between sessions
+
 ## Prerequisites
 
 - Anthropic API key (set ANTHROPIC_API_KEY environment variable or put it in a .env file)
@@ -19,8 +24,8 @@ cd tutor
 2. Create a virtual environment (recommended):
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+python -m venv myenv
+source myenv/bin/activate
 ```
 
 3. Install the required dependencies:
@@ -43,10 +48,14 @@ The following packages are required:
 
 1. Make sure your virtual environment is activated.
 
-2. Start the Flask development server:
+2. Start the web server:
 
 ```bash
 python tutor.py
 ```
 
 The application will be available at `http://localhost:8001`
+
+## Contact
+
+Please email me your feedback or interesting use cases/stories to michael.gensheimer@gmail.com
