@@ -1,11 +1,12 @@
 # Personal Tutor
 
-Runs locally in a web browser using Flask and the Anthropic API.
+Runs locally with a web interface using Flask and the Anthropic API.
 
 ## Features
 
 - Uses Claude 3.5 Sonnet model
 - The AI continuously updates the lesson plan based on progress and how the student is doing, and remembers it between sessions
+- The AI has access to a calculator tool for checking arithmetic problems
 
 ## Prerequisites
 
@@ -48,7 +49,7 @@ The following packages are required:
 
 1. Make sure your virtual environment is activated.
 
-2. Start the web server:
+2. Start the web server from the tutor directory:
 
 ```bash
 python tutor.py
@@ -56,6 +57,16 @@ python tutor.py
 
 The application will be available at `http://localhost:8001`
 
+## Notes
+
+- You can change the model to another Anthropic model by changing the MODEL_NAME variable in utils.py
+- The model is better at some things than others. It sometimes makes math problems with arithmetic or geometry errors.
+- After using the app a bit, check out the text files in the data directory, there are lesson_plan, student_info, and past_problems files for each student that hold the AI's memory and that you might find interesting.
+
 ## Contact
 
-Please email me your feedback or interesting use cases/stories to michael.gensheimer@gmail.com
+Please email me your feedback or interesting use cases/stories at michael.gensheimer@gmail.com
+
+X: @MFGensheimer
+
+BlueSky: @mgens.bsky.social

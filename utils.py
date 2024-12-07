@@ -2,6 +2,7 @@ import json
 from bs4 import BeautifulSoup
 from termcolor import colored
 from datetime import datetime
+import re
 
 import anthropic
 anthropic_client = anthropic.Anthropic()
@@ -53,6 +54,14 @@ def edit_notes(student_name_safe, note_topic, old_excerpt=None, new_excerpt=None
 
 def finish_question(student_name_safe, reason):
     return ("FINISH_QUESTION: " + reason)
+
+
+def calculator(student_name_safe, expression):
+    expression = re.sub(r'[^0-9.+*/() -]', '', expression)
+    try:
+        return eval(expression)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, max_turns=10, verbose_output=False):
@@ -147,3 +156,4 @@ def format_html_w_tailwind(html_text):
     html_text = html_text.replace('<code>', '<code class="bg-gray-200 p-1 rounded">')
     html_text = html_text.replace('<pre>', '<pre class="bg-gray-200 p-2 rounded overflow-x-auto">')    
     return html_text
+

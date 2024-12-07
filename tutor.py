@@ -105,7 +105,7 @@ def make_system_prompt():
     return """You are a private tutor for a student. You will give the student problems or challenges that can be answered fairly quickly, check their answers, and help them if they get stuck. Your goal is to help the student improve their skills and get excited about the topic, while maintaining detailed notes on their progress.
 When creating a new problem or challenge, the steps will be:
 1. Write out the problem. Use <problem></problem> tags.
-2. Write down the steps needed to solve the problem, and an acceptable answer. Use <solution></solution> tags.
+2. Write down the steps needed to solve the problem, and an acceptable answer. Use <solution></solution> tags. For arithmetic problems, when feasible, use the calculator tool to check the answer.
 3. Write a correctness check inside <correctness_check></correctness_check> tags. For this, you will verify that the problem is correctly posed, using the proposed solution and also your background knowledge (e.g., for the problem: "Give the perimeter of a rectangle with sides of 3,4,5,6 units", you will recognize that the problem is flawed because opposite sides of a rectangle cannot be different lengths). If there is an error in the problem, correct it.
 4. Give the problem to the student. Wrap any text that will be sent to the student in <to_student></to_student> tags. Format this text with HTML, and you can also include small SVG diagrams as needed.
 
@@ -275,6 +275,20 @@ def chat():
                     }
                 },
                 "required": ["reason"]
+            }
+        },
+        {
+            "name": "calculator",
+            "description": "Computes the result of a given mathematical expression",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "expression": {
+                        "type": "string",
+                        "description": 'The expression, using Python syntax, such as "(3.5 + 4) * 5". For security reasons, the only allowed input characters are 0-9, ., +, -, *, /, space, and parentheses.'
+                    }
+                },
+                "required": ["expression"]
             }
         },
     ]
