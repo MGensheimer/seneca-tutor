@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Tutor: Add a Student</title>
+    <title>Seneca-tutor: Add a Student</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -20,6 +20,12 @@
         
         <main>
             <div class="bg-white rounded-lg shadow-md p-6">
+                {% if error %}
+                <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                    {{ error }}
+                </div>
+                {% endif %}
+                
                 <form method="POST" class="space-y-6" id="newStudentForm">
                     <div>
                         <label for="student_name" class="block text-sm font-medium text-gray-700">
@@ -29,6 +35,8 @@
                                name="student_name" 
                                id="student_name" 
                                required
+                               pattern="[a-zA-Z0-9\-_]+"
+                               title="Only letters, numbers, hyphens, and underscores are allowed"
                                class="mt-1 block w-full rounded-md border-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     

@@ -1,29 +1,32 @@
-# Personal Tutor
+# Seneca-tutor
 
-Runs locally with a web interface using Flask and the Anthropic API.
+Large language model-based tutoring app that runs locally with a web interface using Flask and the Anthropic API.
 
 ## Why
 
-What qualities would an ideal tutor have? Deep subject matter knowledge, an ability to adapt the material to the student's knowledge and learning style, and the discipline to design an effective long-term lesson plan. We can achieve a lot of this by giving a LLM access to specialized memory files that it can read and update across chat sessions.
+An ideal tutor would have deep subject matter knowledge, an ability to adapt the material to the student's knowledge and learning style, and the discipline to design an effective long-term lesson plan. We can achieve much of this by giving a LLM access to specialized memory files that it can read and update across chat sessions.
 
 ## Features
 
-- Uses Claude 3.5 Sonnet model
 - The AI continuously updates the lesson plan based on progress and how the student is doing, and remembers it between sessions
 - The AI has access to a calculator tool for checking arithmetic problems
+- Uses Claude 3.5 Sonnet model
 
 ## Prerequisites
 
-- Anthropic API key (set ANTHROPIC_API_KEY environment variable or put it in a .env file)
+- Anthropic API key
+  - Set ANTHROPIC_API_KEY environment variable or put it in a .env file in the seneca-tutor directory
+  - Get one at https://console.anthropic.com/
 - Python 3
+- Tested on Mac and Linux
 
 ## Installation
 
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/MGensheimer/tutor.git
-cd tutor
+git clone https://github.com/MGensheimer/seneca-tutor.git
+cd seneca-tutor
 ```
 
 2. Create a virtual environment (recommended):
@@ -41,7 +44,7 @@ pip install -r requirements.txt
 
 ## Dependencies
 
-The following packages are required:
+The following Python packages are required:
 - anthropic>=0.40.0
 - beautifulsoup4>=4.12.3
 - Flask>=3.1.0
@@ -53,19 +56,27 @@ The following packages are required:
 
 1. Make sure your virtual environment is activated.
 
-2. Start the web server from the tutor directory:
+2. Start the web server:
 
 ```bash
 python tutor.py
 ```
 
-The application will be available at `http://localhost:8001`
+3. Go to [`http://localhost:8001`](http://localhost:8001)
 
 ## Notes
 
 - You can change the model to another Anthropic model by changing the MODEL_NAME variable in utils.py
 - The model is better at some things than others. It sometimes makes math problems with arithmetic or geometry errors.
-- After using the app a bit, check out the text files in the data directory, there are lesson_plan, student_info, and past_problems files for each student that hold the AI's memory and that you might find interesting.
+- After using the app a bit, check out the text files in the data directory, each student has lesson_plan, student_info, and past_problems files that hold the AI's memory.
+
+## About Seneca
+
+Seneca was a famed Roman philosopher, statesman, and tutor to the emperor Nero.
+
+<img src="seneca.jpeg" width="200" alt="Seneca" style="display: block; margin: 0 auto;">
+
+*Photo by Jean-Pol Grandmont, via Wikipedia*
 
 ## Contact
 

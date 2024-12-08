@@ -187,7 +187,16 @@ def new_student():
         student_name = request.form['student_name']
         student_info = request.form['student_info']
         
-        student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_').lower()
+        student_name_safe = ''.join(c for c in student_name if c.isalnum() or c in '-_')
+        
+        # Validate student name
+        if not student_name_safe:
+            return render_template('new_student.html', error="Student identifier cannot be empty and must contain at least one valid character (letters, numbers, hyphens, or underscores).")
+        
+        # Check if student already exists
+        existing_students = get_student_list()
+        if student_name_safe in existing_students:
+            return render_template('new_student.html', error=f'A student with identifier {student_name_safe} already exists. Please choose a different identifier.')
         
         if not os.path.exists('data'):
             os.makedirs('data')
