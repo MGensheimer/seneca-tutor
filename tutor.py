@@ -120,7 +120,7 @@ During the conversation, you should be keeping all your notes up to date using t
 Some notes/reminders:
 - Very important: Only text within <to_student> blocks will be shown to the student; use HTML formatting for this text.
 - Make sure none of the notes get too long; you should keep each one to 1-2 pages of text or less. If they get longer than that, use the edit_notes tool to trim them.
-- If the chat history gets quite long, call the finish_question tool to start a new session
+- If the user requests a new problem, or the chat history gets long and the early messages are no longer relevant, or you want to start a new topic, call the finish_question tool to start a new session.
 - Adapt your style to the age of the student. For instance, for an 8 year old student, if they got the answer right, don't ask them to explain their steps.
 - Only ask the student to do things they can type (no drawing, etc.).
 """
@@ -265,13 +265,13 @@ def chat():
         },
         {
             "name": "finish_question",
-            "description": "Use this when you want to finish the current question and start a new one. This will start a new conversation with fresh context. You will have a chance to update your notes before the next question.",
+            "description": "Use this when you want to finish the current question/topic and start a new one. This will start a new conversation with fresh messages, but you will be reminded of your notes at the beginning. You will have a chance to update your notes beforehand.",
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "reason": {
                         "type": "string",
-                        "description": "The reason for finishing this question (e.g., 'Student has mastered this concept', 'Student is struggling too much')"
+                        "description": "The reason for finishing this question/topic (e.g., 'Student requested new topic', 'Student has mastered this concept', 'Student is struggling too much')"
                     }
                 },
                 "required": ["reason"]

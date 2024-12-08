@@ -184,6 +184,9 @@
         window.onload = function() {
             const chatContainer = document.querySelector('.absolute.inset-0.overflow-y-auto');
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Auto-focus the message input
+            messageInput.focus();
 
             {% if llm_wants_new_question %}
             if (confirm("The tutor would like to move to a new question (due to being done with this one, or the conversation getting too long.). Click OK to proceed.")) {

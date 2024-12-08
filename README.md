@@ -2,6 +2,10 @@
 
 Runs locally with a web interface using Flask and the Anthropic API.
 
+## Why
+
+What qualities would an ideal tutor have? Deep subject matter knowledge, an ability to adapt the material to the student's knowledge and learning style, and the discipline to design an effective long-term lesson plan. We can achieve a lot of this by giving a LLM access to specialized memory files that it can read and update across chat sessions.
+
 ## Features
 
 - Uses Claude 3.5 Sonnet model
