@@ -16,7 +16,7 @@ An ideal tutor would have wide-ranging subject matter knowledge, an ability to a
 
 1. User adds a student:
 
-<img src="readme_assets/new_student.png" width="500">
+<img src="readme_assets/new_student.png" width="425">
 
 Student enters: Experienced Python programmer, wants to learn basics of JavaScript/TypeScript for webdev like Node.js
 
@@ -42,7 +42,7 @@ Topics to cover (in order):
 ```
 3. Excerpt from tutoring session:
 
-<img src="readme_assets/chat.png" width="500">
+<img src="readme_assets/chat.png" width="425">
 
 4. Tutor adds to its lesson plan memory:
 ```
