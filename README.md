@@ -4,7 +4,7 @@ Large language model-based tutoring app that runs locally with a web interface u
 
 ## Why
 
-An ideal tutor would have deep subject matter knowledge, an ability to adapt the material to the student's knowledge and learning style, and the discipline to design an effective long-term lesson plan. We can achieve much of this by giving a LLM access to specialized memory files that it can read and update across chat sessions.
+An ideal tutor would have wide-ranging subject matter knowledge, an ability to adapt the material to the student's knowledge and learning style, and the discipline to design an effective long-term lesson plan. We can achieve much of this by giving a LLM access to specialized memory files that it can access and keep updated across chat sessions.
 
 ## Features
 
@@ -15,8 +15,11 @@ An ideal tutor would have deep subject matter knowledge, an ability to adapt the
 ## Demo
 
 1. User adds a student:
-![image](readme_assets/new_student.png)
+
+<img src="readme_assets/new_student.png" width="350">
+
 Student enters: Experienced Python programmer, wants to learn basics of JavaScript/TypeScript for webdev like Node.js
+
 2. Tutor creates a lesson plan (condensed plan shown here):
 
 ```
@@ -37,13 +40,24 @@ Topics to cover (in order):
    - Template literals
 2. ...
 ```
-3. 
+3. Excerpt from tutoring session:
+
+<img src="readme_assets/chat.png" width="350">
+
+4. Tutor adds to its lesson plan memory:
+```
+Learning observations:
+- Quick to grasp basic function syntax
+- Successfully transitioned from Python-style to JavaScript syntax with guidance
+- Shows good understanding of loops and variable manipulation
+- Could benefit from exposure to JavaScript-specific array methods like reduce
+```
 
 ## Prerequisites
 
 - Anthropic API key
-  - Set ANTHROPIC_API_KEY environment variable or put it in a .env file in the seneca-tutor directory
-  - Get one at https://console.anthropic.com/
+  - Set environment variable ANTHROPIC_API_KEY=your_api_key_here (or put it in a .env file in the seneca-tutor directory)
+  - Get an API key at https://console.anthropic.com/
 - Python 3
 - Tested on Mac and Linux
 
@@ -99,7 +113,7 @@ python tutor.py
 
 ## About Seneca
 
-Seneca was a famed Roman philosopher, statesman, and tutor to the emperor Nero.
+Seneca was a famed Stoic philosopher, statesman, and tutor to the Roman emperor Nero. Naming this app after him does not imply that it is as good a tutor as him :)
 
 <img src="readme_assets/seneca.jpeg" width="200" alt="Seneca" style="display: block; margin: 0 auto;">
 
@@ -107,8 +121,8 @@ Seneca was a famed Roman philosopher, statesman, and tutor to the emperor Nero.
 
 ## Contact
 
-Please email me your feedback or interesting use cases/stories at michael.gensheimer@gmail.com
+I'd love to hear your feedback or interesting use cases/stories:
 
-X: @MFGensheimer
-
-BlueSky: @mgens.bsky.social
+- michael.gensheimer@gmail.com
+- X: @MFGensheimer
+- BlueSky: @mgens.bsky.social
