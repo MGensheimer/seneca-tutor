@@ -262,7 +262,7 @@ def chat():
                     },
                     "old_excerpt": {
                         "type": "string",
-                        "description": "The text to replace (leave empty to append instead)"
+                        "description": "The text to replace (leave empty to overwrite the entire note instead)"
                     },
                     "new_excerpt": {
                         "type": "string",
@@ -478,4 +478,4 @@ def delete_student(student_name):
 
 
 if __name__ == '__main__':
-    app.run(port=8001, debug=True)
+    app.run(port=8001, debug=False)

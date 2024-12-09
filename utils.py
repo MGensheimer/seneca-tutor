@@ -37,12 +37,12 @@ def edit_notes(student_name_safe, note_topic, old_excerpt=None, new_excerpt=None
             return "Error: Both old_excerpt and new_excerpt cannot be empty"
             
         current_notes = get_notes(student_name_safe, note_topic)
-        if not old_excerpt:  # If no old_excerpt, just append new text
-            new_notes = current_notes + "\n" + new_excerpt
+        if not old_excerpt:  # If no old_excerpt, replace the entire note
+            new_notes = new_excerpt
         else:
             if old_excerpt not in current_notes:
                 return f"Error: Could not find the exact text to replace in {note_topic} notes"
-            # If new_excerpt is empty, just remove old_excerpt
+            # Replace old_excerpt with new_excerpt if new_excerpt is not empty, otherwise just remove old_excerpt
             new_notes = current_notes.replace(old_excerpt, new_excerpt if new_excerpt else "")
         
         with open(f'data/{student_name_safe}_{note_topic}.txt', 'w') as f:

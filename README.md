@@ -12,6 +12,33 @@ An ideal tutor would have deep subject matter knowledge, an ability to adapt the
 - The AI has access to a calculator tool for checking arithmetic problems
 - Uses Claude 3.5 Sonnet model
 
+## Demo
+
+1. User adds a student:
+![image](readme_assets/new_student.png)
+Student enters: Experienced Python programmer, wants to learn basics of JavaScript/TypeScript for webdev like Node.js
+2. Tutor creates a lesson plan (condensed plan shown here):
+
+```
+Short-term goals:
+- Master JavaScript syntax differences from Python
+- Understand JavaScript's type system and TypeScript basics
+- ...
+
+Long-term goals:
+- Develop proficiency in Node.js backend development
+- ...
+
+Topics to cover (in order):
+1. JavaScript Syntax and Key Differences
+   - Variable declarations (let, const, var)
+   - Function syntax (regular, arrow functions)
+   - Object and array syntax
+   - Template literals
+2. ...
+```
+3. 
+
 ## Prerequisites
 
 - Anthropic API key
@@ -74,7 +101,7 @@ python tutor.py
 
 Seneca was a famed Roman philosopher, statesman, and tutor to the emperor Nero.
 
-<img src="seneca.jpeg" width="200" alt="Seneca" style="display: block; margin: 0 auto;">
+<img src="readme_assets/seneca.jpeg" width="200" alt="Seneca" style="display: block; margin: 0 auto;">
 
 *Photo by Jean-Pol Grandmont, via Wikipedia*
 
