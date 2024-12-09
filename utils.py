@@ -9,7 +9,7 @@ from anthropic import AuthenticationError
 load_dotenv()
 
 import anthropic
-anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY',"no_key_supplied"))
 
 MODEL_NAME = 'claude-3-5-sonnet-latest'
 

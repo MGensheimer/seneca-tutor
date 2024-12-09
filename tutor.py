@@ -17,7 +17,7 @@ MAX_INPUT_TOKENS = 80000
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'insecure-key')
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY',"no_key_supplied")
 
 note_topics = ['student_info', 'lesson_plan', 'past_problems']
 
