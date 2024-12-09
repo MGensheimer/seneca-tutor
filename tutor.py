@@ -17,6 +17,7 @@ MAX_INPUT_TOKENS = 80000
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'insecure-key')
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 
 note_topics = ['student_info', 'lesson_plan', 'past_problems']
 
@@ -343,7 +344,7 @@ def chat():
                     except Exception as e:
                         print(colored(f'Error calling LLM (attempt {attempt + 1}): {e}', 'red'))
                         if attempt == retries - 1:  # If it's the last attempt
-                            messages.append({"role": "assistant", "content": f"Error calling LLM: {e}. <to_student>I had a problem and couldn't respond. Please try again.</to_student>"})
+                            messages.append({"role": "assistant", "content": f"Error calling LLM: {e}. <to_student>I had a problem and couldn't respond. Please type a new message.</to_student>"})
 
                 # Save chat history to file
                 save_chat_history(
@@ -365,25 +366,25 @@ def chat():
             need_to_call_llm = True
 
     if need_to_call_llm:
-        input_token_count = count_tokens(messages, tools)
-        if VERBOSE_OUTPUT:
-            print(colored(f'Input token count: {input_token_count}', 'green'))
+        try:
+            input_token_count = count_tokens(messages, tools)
+            if VERBOSE_OUTPUT:
+                print(colored(f'Input token count: {input_token_count}', 'green'))
+        except Exception as e:
+            print(colored(f'Error counting tokens: {e}', 'red'))
+            input_token_count = 0
 
-        retries = 3
-        for attempt in range(retries):
-            try:
-                messages = call_llm_with_tools(
-                    session['student_name_safe'], 
-                    make_system_prompt(),
-                    messages, 
-                    tools, 
-                    verbose_output=VERBOSE_OUTPUT
-                )
-                break
-            except Exception as e:
-                print(colored(f'Error calling LLM (attempt {attempt + 1}): {e}', 'red'))
-                if attempt == retries - 1:  # If it's the last attempt
-                    messages.append({"role": "assistant", "content": f"Error calling LLM: {e}. <to_student>I had a problem and couldn't respond. Please try again.</to_student>"})
+        try:
+            messages = call_llm_with_tools(
+                session['student_name_safe'], 
+                make_system_prompt(),
+                messages, 
+                tools, 
+                verbose_output=VERBOSE_OUTPUT
+            )
+        except Exception as e:
+            print(colored(f'Error calling LLM: {e}', 'red'))
+            messages.append({"role": "assistant", "content": f"Error calling LLM: {e}. <to_student>I had a problem and couldn't respond. Please type a new message.</to_student>"})
 
         # Check if LLM called finish_question
         llm_wants_new_question = False

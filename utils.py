@@ -1,11 +1,15 @@
 import json
-from bs4 import BeautifulSoup
+import os
 from termcolor import colored
 from datetime import datetime
 import re
+from dotenv import load_dotenv
+from anthropic import AuthenticationError
+
+load_dotenv()
 
 import anthropic
-anthropic_client = anthropic.Anthropic()
+anthropic_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 
 MODEL_NAME = 'claude-3-5-sonnet-latest'
 
@@ -69,14 +73,36 @@ def call_llm_with_tools(student_name_safe, system_prompt, messages, tools=None, 
     first_turn = True
     while first_turn or response.stop_reason == "tool_use":
         first_turn = False
-        response = anthropic_client.messages.create(
-            model=MODEL_NAME,
-            max_tokens=8192,
-            system=system_prompt,
-            tools=tools,
-            messages=messages
-        )
 
+        retries = 3
+        for attempt in range(retries):
+            try:
+                response = anthropic_client.messages.create(
+                    model=MODEL_NAME,
+                    max_tokens=8192,
+                    system=system_prompt,
+                    tools=tools,
+                    messages=messages
+                )
+                break
+            except AuthenticationError as e:
+                print(colored(f'Error calling LLM (attempt {attempt + 1}): {e}', 'red'))
+                error_message = {
+                    "role": "assistant",
+                    "content": "<to_student>Sorry, I could not authenticate with the given Anthropic API key. Please check your API key and try again.</to_student>"
+                }
+                messages.append(error_message)
+                return messages
+            except Exception as e:
+                print(colored(f'Error calling LLM (attempt {attempt + 1}): {e}', 'red'))
+                if attempt == retries - 1:  # If it's the last attempt
+                    error_message = {
+                        "role": "assistant", 
+                        "content": f"<to_student>I apologize, but I encountered an error: {str(e)}. Please type a new message to try again.</to_student>"
+                    }
+                    messages.append(error_message)
+                    return messages
+        
         if turn_i >= max_turns:
             if verbose_output:
                 print(colored(f'Max turns reached ({max_turns})', 'red'))

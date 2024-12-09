@@ -110,6 +110,7 @@ python tutor.py
 - You can change the model to another Anthropic model by changing the MODEL_NAME variable in utils.py
 - The model is better at some things than others. It sometimes makes math problems with arithmetic or geometry errors.
 - After using the app a bit, check out the text files in the data directory, each student has lesson_plan, student_info, and past_problems files that hold the AI's memory.
+- The Anthropic API is a bit flaky and will sometimes give internal server or overloaded errors, so if you get an error, please try again.
 
 ## About Seneca
 
