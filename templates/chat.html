@@ -83,7 +83,9 @@
                         {% for message in chat_messages %}
                             <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-blue-500{% else %}border-l-4 border-fuchsia-500{% endif %}">
                                 <div class="flex justify-between items-center text-sm text-gray-500 mb-1">
-                                    <span>{{ message.role|title }}</span>
+                                    <span>
+                                        {{ 'Tutor' if message.role == 'assistant' else 'Student' }}
+                                    </span>
                                     <button class="speak-button p-1 hover:bg-gray-100 rounded-full" aria-label="Read message aloud">
                                         <img src="{{ url_for('static', filename='images/speaker-wave.svg') }}" 
                                              alt="Speaker icon" 
