@@ -79,7 +79,7 @@
             <!-- Chat Tab Content -->
             <div id="chatContent" class="tab-content absolute inset-0 overflow-y-auto">
                 <div class="p-4">
-                    <div class="container mx-auto max-w-3xl space-y-4">
+                    <div class="container mx-auto max-w-4xl space-y-4">
                         {% for message in chat_messages %}
                             <div class="bg-white rounded-lg shadow-sm p-4 {% if message.role == 'assistant' %}border-l-4 border-blue-500{% else %}border-l-4 border-fuchsia-500{% endif %}">
                                 <div class="flex justify-between items-center text-sm text-gray-500 mb-1">
@@ -92,8 +92,10 @@
                                              class="w-5 h-5">
                                     </button>
                                 </div>
-                                <div class="prose speak-content">
-                                    {{ message.content|safe }}
+                                <div class="prose speak-content overflow-x-auto max-w-full">
+                                    <div class="max-w-full">
+                                        {{ message.content|safe }}
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
@@ -126,8 +128,10 @@
                                              class="w-5 h-5">
                                     </button>
                                 </div>
-                                <div class="prose speak-content">
-                                    {{ message.content|safe }}
+                                <div class="prose speak-content overflow-x-auto max-w-full">
+                                    <div class="max-w-full">
+                                        {{ message.content|safe }}
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}

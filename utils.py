@@ -180,6 +180,6 @@ def format_html_w_tailwind(html_text):
     html_text = html_text.replace('<em>', '<em class="italic">')
     html_text = html_text.replace('<blockquote>', '<blockquote class="border-l-4 border-gray-300 pl-4 italic">')
     html_text = html_text.replace('<code>', '<code class="bg-gray-200 p-1 rounded">')
-    html_text = html_text.replace('<pre>', '<pre class="bg-gray-200 p-2 rounded overflow-x-auto">')    
+    html_text = html_text.replace('<pre>', '<pre class="bg-gray-200 p-2 rounded overflow-x-auto whitespace-pre-wrap">')    
     return html_text
 
