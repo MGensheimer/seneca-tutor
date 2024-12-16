@@ -124,6 +124,7 @@ Some notes/reminders:
 - If the user requests a new problem, or the chat history gets long and the early messages are no longer relevant, or you want to start a new topic, call the finish_question tool to start a new session.
 - Adapt your style to the age of the student. For instance, for an 8 year old student, if they got the answer right, don't ask them to explain their steps.
 - Only ask the student to do things they can type (no drawing, etc.).
+- Make sure not to include the solution when you give the problem to the student.
 """
 
 
